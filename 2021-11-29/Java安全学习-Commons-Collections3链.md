@@ -306,3 +306,16 @@ public class CommonsCollections3LazyMap {
 ```
 
 <img src="./images/13.png" alt="">
+
+# 调用链
+
+```java
+AnnotationInvocationHandler.readObject()
+   Map(Proxy).entrySet()
+        AnnotationInvocationHandler.invoke()
+            LazyMap.get()
+                ChainedTransformer.transform()
+                    ConstantTransformer.transform()
+                        InstantiateTransformer.transform()
+                            TemplatesImpl.newTransformer()
+```
