@@ -13,5 +13,8 @@
 > 13. 2021-11-16：ctfshow 击剑杯-Web
 > 14. 2021-11-17：PHP 原生类
 > 15. 2021-11-18：浅谈Proc目录
-> 16. 2021-11-19 ～ 2021-11-20：URLDNS链
-> 17. 2021-11-21 ~ 2021-11-23: Commons-Collections1链
+> 16. 2021-11-19 ～ 2021-11-20：Java安全学习 URLDNS链
+> 17. 2021-11-21 ~ 2021-11-23：Java安全学习 Commons-Collections1链
+> 18. 2021-11-23：Mac安装jadx反编译工具、PWN环境-Mac
+> 19. 2021-11-25 ~ 2021-11-29：Java安全学习 Commons-Collections2链
+> 20. 2021-11-26：西湖论剑wp、Javassist学习、TemplatesImpl学习
