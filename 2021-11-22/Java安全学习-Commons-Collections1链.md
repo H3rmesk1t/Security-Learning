@@ -33,7 +33,7 @@
 > 在`Commons Collections`库中提供了一个抽象类`org.apache.commons.collections.map.AbstractMapDecorator`，这个类是`Map`的扩展，且是一个基础的装饰器，用来给`Map`提供附加功能，这个类有很多实现类，且每个类的触发方式也都是不一样的，在`Commons-Collections1`链中需要重点关注`TransformedMap`类和`LazyMap`类
 
 ## Transformer
-> `org.apache.commons.collections.Transformer`是一个接口，提供了一个`transform()`方法，用来定义具体的转换逻辑，方法接收`Object`类型的`inpu`，处理后将`Object`返回，在`Commons-Collection`中，程序提供了多个`Transformer`的实现类，用来实现不同的`TransformedMap`类中`key、value`进行修改的功能
+> `org.apache.commons.collections.Transformer`是一个接口，提供了一个`transform()`方法，用来定义具体的转换逻辑，方法接收`Object`类型的`input`，处理后将`Object`返回，在`Commons-Collection`中，程序提供了多个`Transformer`的实现类，用来实现不同的`TransformedMap`类中`key、value`进行修改的功能
 
 <img src="./images/1.png">
 
@@ -105,7 +105,7 @@ public class ChainedTransformerDemo {
 
 <img src="./images/8.png" alt="">
 
-# Commons-Collections1 TransformedMap
+# Commons-Collections1-TransformedMap 分析
 > 利用`TransformedMap`的`decorate`方法来将`ChainedTransformer`设置为`map`装饰器的处理方法，调用`TransformedMap`的`put()/setValue()`等方法时会触发`Transformer`链的调用方法
 > 寻找一个重写了`readObject`的类，在反序列化时可以改变`map`的值，定位到`sun.reflect.annotation.AnnotationInvocationHandler`类，这个类实现了`InvocationHandler`接口 (原本是用于`JDK`对于注解形式的动态代理)
 
@@ -180,7 +180,7 @@ public class CommonsCollectionsTransformedMap {
 ```
 <img src="./images/11.png" alt="">
 
-# Commons-Collections LazyMap
+# Commons-Collections1-LazyMap 分析
 > 核心点在`LazyMap#get`，`LazyMap`在没有`key`时会尝试调用`this.factory.transform`方法，而`this.factory`可以指定为`Transformer`对象，而且`transform`方法参数会被忽略掉，因此只需要寻找一个调用了`LazyMap.get`的方法
 
 <img src="./images/12.png" alt="">
