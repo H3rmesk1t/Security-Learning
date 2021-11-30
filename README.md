@@ -19,3 +19,4 @@
 > 19. 2021-11-25 ~ 2021-11-29：Java安全学习 Commons-Collections2链
 > 20. 2021-11-26：西湖论剑wp、Javassist学习、TemplatesImpl学习
 > 21. 2021-11-29：Java动态加载字节码、Java安全学习 Commons-Collections3链
+> 22. 2021-11-30：Java安全学习 Commons-Collections4链、Java安全学习 Commons-Collections5链、Java安全学习 Commons-Collections6链、Java安全学习 Commons-Collections7链
