@@ -256,3 +256,6 @@ AnnotationInvocationHandler.readObject()
                     ConstantTransformer.transform()
                         InvokerTransformer.transform()
 ```
+
+# 总结
+> 利用`AnnotationInvocationHandler`在反序列化时会触发`Map`的`get/set`等操作，配合`TransformedMap/LazyMap`在执行`Map`对象的操作时会根据不同情况调用`Transformer`的转换方法，最后结合了`ChainedTransformer`的链式调用、`InvokerTransformer`的反射执行完成了恶意调用链的构成，其中`LazyMap`的触发还用到了动态代理机制

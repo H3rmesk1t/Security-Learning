@@ -319,3 +319,6 @@ AnnotationInvocationHandler.readObject()
                         InstantiateTransformer.transform()
                             TemplatesImpl.newTransformer()
 ```
+
+# 总结
+> 利用`AnnotationInvocationHandler`在反序列化时会触发`Map`的`get/set`等操作，配合`LazyMap`在执行`Map`对象的操作时会根据不同情况调用`Transformer`的转换方法，利用了`InstantiateTransformer`实例化`TrAXFilter`类，并调用`TemplatesImpl`的`newTransformer`方法实例化恶意类字节码触发漏洞

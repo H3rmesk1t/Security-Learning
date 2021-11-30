@@ -56,7 +56,7 @@
 ## TemplatesImpl
 > `TemplatesImpl`的属性`_bytecodes`存储了类字节码，`TemplatesImpl`类的部分方法可以使用这个类字节码去实例化这个类，这个类的父类需是`AbstractTranslet`，在这个类的无参构造方法或静态代码块中写入恶意代码，再借`TemplatesImpl`之手实例化这个类触发恶意代码
 
-# Commons-Collections2 利用链分析
+# Commons-Collections2 分析
 > 先跟进`PriorityQueue#readObject`，其`queue`的值来自于`readObject()`方法，是可控的，循环完成后会调用`heapify()`方法
 
 ```java
@@ -122,7 +122,7 @@ public int compare(I obj1, I obj2) {
 ```
 > 这里需要注意几个地方，在`heapify()`方法处的`size`要是大于`1`的，只有这样才会继续进入到`siftDown()`方法中，而`size`的取值来自于
 
-## POC 链1
+## POC-1
 > 利用`PriorityQueue`和`CommonsCollections-1`后半部分来进行构造
 
 ```java
@@ -188,7 +188,7 @@ public class CommonsCollectionsGadget1 {
 
 <img src="./images/4.png" alt="">
 
-## POC 链2
+## POC-2
 > 为了更好的符合实战利用中的要求，利用`InvokerTransformer`触发`TemplatesImpl`的`newTransformer`，从而读取恶意字节码从而进行执行命令，并且利用`javassist`和`TemplatesImpl`来进行构造
 
 ```java
@@ -302,3 +302,6 @@ ObjectInputStream.readObject()
                                          newInstance()
                                             Runtime.exec()
 ```
+
+# 总结
+> 利用`PriorityQueue`在反序列化后会对队列进行优先级排序的特点，为其指定`TransformingComparator`排序方法，并在其中为其添加`Transforer`，与`CommonsCollections1`链类似，主要的触发位置还是`InvokerTransformer`
