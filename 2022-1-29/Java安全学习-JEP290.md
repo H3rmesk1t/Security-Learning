@@ -1,5 +1,53 @@
+# Java安全学习-JEP290
+作者: H3rmesk1t@D1no
 
-## 简介
+<!-- vscode-markdown-toc -->
+* 1. [简介](#)
+* 2. [JEP290实际限制](#JEP290)
+* 3. [核心类](#-1)
+	* 3.1. [ObjectInputStream 类](#ObjectInputStream)
+		* 3.1.1. [构造函数](#-1)
+		* 3.1.2. [serialFilter 属性](#serialFilter)
+		* 3.1.3. [filterCheck 函数](#filterCheck)
+	* 3.2. [ObjectInputFilter 接口](#ObjectInputFilter)
+	* 3.3. [Config 静态类](#Config)
+		* 3.3.1. [createFilte 方法](#createFilte)
+		* 3.3.2. [getSerialFilter 方法](#getSerialFilter)
+	* 3.4. [Global 静态类](#Global)
+		* 3.4.1. [构造函数](#-1)
+		* 3.4.2. [filters 字段](#filters)
+		* 3.4.3. [checkInput 方法](#checkInput)
+* 4. [过滤器](#-1)
+	* 4.1. [全局过滤器](#-1)
+		* 4.1.1. [jdk.serailFilter](#jdk.serailFilter)
+	* 4.2. [局部过滤器](#-1)
+* 5. [RMI 过滤机制](#RMI)
+	* 5.1. [RegistryImpl 对象与 JEP290](#RegistryImplJEP290)
+	* 5.2. [DGCImpl 对象与 JEP290](#DGCImplJEP290)
+	* 5.3. [通过 JVM 参数或者配置文件进行配置](#JVM)
+		* 5.3.1. [RegistryImpl](#RegistryImpl)
+		* 5.3.2. [DGCImpl](#DGCImpl)
+* 6. [RMI-JEP290 绕过](#RMI-JEP290)
+	* 6.1. [8u121~8u230](#u1218u230)
+		* 6.1.1. [UnicastRef 类](#UnicastRef)
+		* 6.1.2. [RemoteObject 类](#RemoteObject)
+		* 6.1.3. [ByPass](#ByPass)
+		* 6.1.4. [Demo](#Demo)
+		* 6.1.5. [修复](#-1)
+	* 6.2. [8u231~8u240](#u2318u240)
+		* 6.2.1. [Gadget 分析](#Gadget)
+		* 6.2.2. [Demo](#Demo-1)
+		* 6.2.3. [修复](#-1)
+* 7. [参考](#-1)
+* 8. [工具](#-1)
+
+<!-- vscode-markdown-toc-config
+	numbering=true
+	autoSave=true
+	/vscode-markdown-toc-config -->
+<!-- /vscode-markdown-toc -->
+
+##  1. <a name=''></a>简介
 `JEP 290`是`Java`底层为了缓解反序列化攻击提出的一种解决方案, 理想状态是让开发者只反序列化其想反序列化的类, 这样使用类似`CC链`这样的, 就会因为无法反序列化`Tranformer`、`HashMap`等, 从而没法触发漏洞.
 
 [官方描述](http://openjdk.java.net/jeps/290)
@@ -28,7 +76,7 @@
 
 ![JEP 290添加在JDK678](./images/2.png)
 
-## JEP290实际限制
+##  2. <a name='JEP290'></a>JEP290实际限制
 这里用`8u311`和`8u66`来做比较, 示例代码如下:
 
  - RMIServer.java
@@ -120,14 +168,14 @@ public interface RemoteInterface extends Remote {
 
 ![8u66](./images/5.png)
 
-## 核心类
+##  3. <a name='-1'></a>核心类
 `JEP 290`涉及的核心类有: `ObjectInputStream`类, `ObjectInputFilter`接口, `Config`静态类以及`Global`静态类. 其中`Config`类是`ObjectInputFilter`接口的内部类, `Global`类又是`Config`类的内部类.
 
 
-### ObjectInputStream 类
+###  3.1. <a name='ObjectInputStream'></a>ObjectInputStream 类
 跟进之前测试时的报错信息, 跟进`java.io.ObjectInputStream`类, `JEP 290`进行过滤的具体实现方法是在`ObjectInputStream`类中增加了一个`serialFilter`属性和一个`filterChcek`函数, 两者搭配来实现过滤.
 
-#### 构造函数
+####  3.1.1. <a name='-1'></a>构造函数
 在`ObjectInputStream`类中含有两个构造函数, 需要注意的是, 在这两个构造函数中都会给属性`serialFilter`赋值为`Config.getSerialFilterFactorySingleton().apply(null, Config.getSerialFilter())`.
 
 ![serialFilter](./images/6.png)
@@ -136,14 +184,14 @@ public interface RemoteInterface extends Remote {
 
 ![getSerialFilter](./images/7.png)
 
-#### serialFilter 属性
+####  3.1.2. <a name='serialFilter'></a>serialFilter 属性
 `serialFilter`属性是一个`ObjectInputFilter`接口类型, 并且这个接口声明了一个`checkInput`方法.
 
 ![serialFilter](./images/8.png)
 
 ![checkInput](./images/9.png)
 
-#### filterCheck 函数
+####  3.1.3. <a name='filterCheck'></a>filterCheck 函数
 在`filterCheck`函数中, 函数逻辑流程大致可以分为三步:
   1. 先判断`serialFilter`的属性值是否为`null`, 当不为`null`时则会进行过滤操作.
   2. 当判断`serialFilter`的属性值不为`null`后, 创建一个`FilterValues`对象, 并把需要检查的信息封装进去, 再调用`serialFilter.checkInput`方法进行判断, 并返回`ObjectInputFilter.Status`类型的返回值
@@ -151,56 +199,56 @@ public interface RemoteInterface extends Remote {
 
 ![filterCheck](./images/10.png)
 
-### ObjectInputFilter 接口
+###  3.2. <a name='ObjectInputFilter'></a>ObjectInputFilter 接口
 该接口是`JEP 290`中实现过滤操作的一个最基础的接口, 在低于`JDK 9`的时候的全限定名是`sun.misc.ObjectInputFIlter`, `JDK 9`及以上是`java.io.ObjectInputFilter`. `ObjectInputFilter`接口的结构大致分为`checkInput`函数、`Config`静态类、`FilterInfo`接口、`Status`枚举类.
 
 ![ObjectInputFilter](./images/11.png)
 
-### Config 静态类
+###  3.3. <a name='Config'></a>Config 静态类
 `Config`静态类是`ObjcectInputFilter`接口的一个内部静态类. 在初始化时, 会将`Config.serialFilter`赋值为一个`Global`对象, 而`ObjectInputStream`的构造函数中取的就是` Config.serialFilter`这个静态字段, 所以设置了`Config.serialFilter`这个静态字段就相当于设置了`ObjectInputStream`类全局过滤器. 
 
 ![Config](./images/12.png)
 
 这里可以通过配置`JVM`的`jdk.serialFilter`或者`%JAVA_HOME%\conf\security\java.security`文件的`jdk.serialFilter`字段值, 来设置`Config.serialFilter`, 也是设置了全局过滤. 另外还有就是一些框架, 在开始的时候设置也会设置`Config.serialFilter`, 来设置`ObjectInputStream`类的全局过滤, 例如`weblogic`在启动的时候会设置`Config.serialFilter`为`WebLogicObjectInputFilterWrapper`对象.
 
-#### createFilte 方法
+####  3.3.1. <a name='createFilte'></a>createFilte 方法
 `Config#createFilter`会进一步调用`Global.createFilter`方法, 主要功能就是将传入的`JEP 290`规则字符串解析到`Global`对象的`filters`字段上, 并且返回这个`Global`对象.
 
 ![createFilter](./images/13.png)
 
-#### getSerialFilter 方法
+####  3.3.2. <a name='getSerialFilter'></a>getSerialFilter 方法
 `Config#getSerialFilter`主要功能就是返回`Config#serialFilter`的字段值.
 
 ![getSerialFilter](./images/14.png)
 
-### Global 静态类
+###  3.4. <a name='Global'></a>Global 静态类
 `Global`静态类是`Config`类中的一个内部静态类, 其重要特征是实现了`ObjectInputFilter`接口中的`checkInput`方法. 所以`Global`类可以直接赋值到`ObjectInputStream.serialFilter`上.
 
-#### 构造函数
+####  3.4.1. <a name='-1'></a>构造函数
 `Global`中的构造函数会解析`JEP 290`规则为对应的`lambda`表达式, 然后添加到`Global.filters`.
 
 ![global](./images/16.png)
 
-#### filters 字段
+####  3.4.2. <a name='filters'></a>filters 字段
 `filters`字段作为一个函数列表, 用来后续过滤操作.
 
-#### checkInput 方法
+####  3.4.3. <a name='checkInput'></a>checkInput 方法
 `checkInput`方法会遍历`filters`来检测要反序列化的类.
 
 ![checkInput](./images/9.png)
 
-## 过滤器
+##  4. <a name='-1'></a>过滤器
 在核心类中的`ObjectInputStream`类中说过, 配置过滤器其实就是设置`ObjectInputStream`类中的`serialFilter`属性. 根据上文提到的过滤配置规则也不难看出过滤器的类型有两种:
  1. 通过配置文件或者`JVM`属性来配置的全局过滤器.
  2. 通过改变`ObjectInputStream`的`serialFilter`属性来配置的局部过滤器.
 
-### 全局过滤器
+###  4.1. <a name='-1'></a>全局过滤器
 全局过滤器实际上就是通过设置`Config`静态类中的`serialFilter`静态字段值来进行过滤. 上文中也提到了在`ObjectInputStream`的两个构造方法中都会`serialFilter`属性赋值`Config.getSerialFilterFactorySingleton().apply(null, Config.getSerialFilter())`, 通过调用链可以知道最后返回的是`Config#serialFilter`.
 
-#### jdk.serailFilter
+####  4.1.1. <a name='jdk.serailFilter'></a>jdk.serailFilter
 上文中提到了`Config`静态类初始化的时候会解析`jdk.serailFilter`属性设置的`JEP 290`规则到一个`Global`对象的`filters`属性, 并且会将这个`Global`对象赋值到`Config`静态类的`serialFilter`属性上. 因此, `Config.serialFilter`值默认是解析`jdk.serailFilter`属性得到得到的`Global`对象.
 
-### 局部过滤器
+###  4.2. <a name='-1'></a>局部过滤器
 局部过滤器实际上是在`new objectInputStream`对象之后通过改变单个`ObjectInputStream`对象的`serialFilter`字段值来实现局部过滤, 通常有两种方法来达到该目的:
  - 通过调用`ObjectInputStream`对象的`setInternalObjectInputFilter`方法(低于`JDK 9`的时候是`getInternalObjectInputFilter`和`setInternalObjectInputFilter`, `JDK 9`以及以上是`getObjectInputFilter`和`setObjectInputFIlter`).
 
@@ -210,10 +258,10 @@ public interface RemoteInterface extends Remote {
 
 ![Config#setObjectInputFIlter](./images/18.png)
 
-## RMI 过滤机制
+##  5. <a name='RMI'></a>RMI 过滤机制
 在`RMI`中采用的是局部过滤的机制, 对于`RMI`的学习具体可以看看之前的[Java安全学习-RMI学习](https://github.com/H3rmesk1t/Learning_summary/blob/main/2022-1-19/Java%E5%AE%89%E5%85%A8%E5%AD%A6%E4%B9%A0-RMI%E5%AD%A6%E4%B9%A0.md#)或者[官方文档](https://docs.oracle.com/javase/tutorial/rmi/overview.html)
 
-### RegistryImpl 对象与 JEP290
+###  5.1. <a name='RegistryImplJEP290'></a>RegistryImpl 对象与 JEP290
 `RegistryImpl`作为一个特殊的对象, 导出在`RMI`服务端, 客户端调用的`bind`、`lookup`、`list`等操作, 实际上是操作`RegistryImpl`的`bindings`这个`Hashtable`. `RegistryImpl`特殊在导出过程中生成的`Target`对象是一个"定制"的`Target`对象, 具体体现在:
  - `Target`中`id`的`objNum`是固定的, 为`ObjID.REGISTRY_ID`, 也就是`0`.
  - `Target`中`disp`是`filter`为`RegisryImpl::RegistryFilter`, `skel`为`RegsitryImpl_skel`的`UnicastServerRef`对象.
@@ -221,14 +269,14 @@ public interface RemoteInterface extends Remote {
 
 ![bindings](./images/19.png)
 
-### DGCImpl 对象与 JEP290
+###  5.2. <a name='DGCImplJEP290'></a>DGCImpl 对象与 JEP290
 `DGCImpl`对象和`RegistryImpl`对象类似都是一个特殊的对象, 其`Target`对象的特殊体现在:
  - `Target`中`id`的`objNum`是固定的, 为`ObjID.DGC_ID`, 也就是`2`.
  - `Target`中`disp`是`filter`为`DGCImpl::DGCFilter`, `skel`为`DGCImpl_skel`的 `UnicastServerRef`对象.
  - `Target`中`stub`为`DGC_stub`.
 
-### 通过 JVM 参数或者配置文件进行配置
-#### RegistryImpl
+###  5.3. <a name='JVM'></a>通过 JVM 参数或者配置文件进行配置
+####  5.3.1. <a name='RegistryImpl'></a>RegistryImpl
 `RegistryImpl`中含有一个静态字段`registryFilter`, 所以在`new RegistryImpl`对象的时候会调用`initRegistryFilter`方法进行赋值.
 
 ```java
@@ -249,7 +297,7 @@ private static final ObjectInputFilter registryFilter = (ObjectInputFilter)Acces
 
 ![RegistryImpl#regstiryFilter](./images/23.png)
 
-#### DGCImpl
+####  5.3.2. <a name='DGCImpl'></a>DGCImpl
 `DGCImpl`中含有一个静态字段`dgcFilter`, 所以在`new DGCImpl`对象的时候会调用`initDgcFilter`方法进行赋值.
 
 ![DGCImpl#dgcFilter](./images/24.png)
@@ -266,7 +314,7 @@ private static final ObjectInputFilter registryFilter = (ObjectInputFilter)Acces
 
 ![DGCImpl#checkInput](./images/27.png)
 
-## RMI-JEP290 绕过
+##  6. <a name='RMI-JEP290'></a>RMI-JEP290 绕过
 在`RMI`中`JEP 290`主要是在远程引用层之上进行过滤的, 所以其过滤作用对`Server`和`Client`的互相攻击无效(完成和`Registry`通信之后, 客户端和服务端的相互通信就到了远程引用层和传输层).
 
 ![server-client](./images/28.png)
@@ -290,8 +338,8 @@ private static final ObjectInputFilter registryFilter = (ObjectInputFilter)Acces
 
 只要反序列化的类不是白名单中的类, 便会返回`REJECTED`操作符, 表示序列化流中有不合法的内容, 直接抛出异常.
 
-### 8u121~8u230
-#### UnicastRef 类
+###  6.1. <a name='u1218u230'></a>8u121~8u230
+####  6.1.1. <a name='UnicastRef'></a>UnicastRef 类
 在`RegistryImpl#registryFilter`中的白名单中可以看到该类, 它也是`RMIServer`或者`RMIClient`和`Registry`通信的基础. 当我们在执行`lookup`、`bind`等操作时往往先会获取一个`Registry`, 示例代码如下:
 
 ```java
@@ -329,7 +377,7 @@ public class RMIClient {
 
 ![lookup](./images/30.png)
 
-#### RemoteObject 类
+####  6.1.2. <a name='RemoteObject'></a>RemoteObject 类
 `RemoteObject`实现了`Remote`和`Serializable`接口, 而`Remote`又是`RegistryImpl#registryFilter`中白名单的内容, 因此它及其子类是可以通过白名单检测的. 在后续分析中, 利用的正是`RemoteObject#readObject`方法. 其最后的`ref.readExternal(in)`中的`ref`正好是一个`UnicastRef`对象.
 
 ![RemoteObject#readObject](./images/31.png)
@@ -362,7 +410,7 @@ public class RMIClient {
 
 ![DGCClient#registerRefs](./images/38.png)
 
-#### ByPass
+####  6.1.3. <a name='ByPass'></a>ByPass
 在上文对`UnicastRef`和`RemoteObject`两个类的分析中可以发现:
  - `RemoteObject`类及其子类对象可以被`bind`或者`lookup`到`Registry`, 且在白名单之中.
  - `RemoteObject`类及其没有实现`readObject`方法的子类经过反序列化可以通过内部的`UnicastRef`对象发起`JRMP`请求连接恶意的`Server`.
@@ -399,7 +447,7 @@ ObjectInputSteam#readObject –> "demo"
 
 ![findClass](./images/40.png)
 
-#### Demo
+####  6.1.4. <a name='Demo'></a>Demo
 测试代码如下:
  - RMIRegistry
 
@@ -467,12 +515,12 @@ java -cp ~/Desktop/ysoserial.jar ysoserial.exploit.JRMPListener 9999 CommonsColl
 
 ![bypass jdk8u121-jdk8u130](./images/41.png)
 
-#### 修复
+####  6.1.5. <a name='-1'></a>修复
 `JDK8u231`版本及以上的`DGCImpl_Stub#dirty`方法中多了一个`setObjectInputFilter`的过程, 导致`JEP 290`重新可以`check`到. 
 
 ![](./images/58.png)
 
-### 8u231~8u240
+###  6.2. <a name='u2318u240'></a>8u231~8u240
 在`ByPass 8u121~8u230`的时候, `UnicastRef`类用了一层包装, 通过`DGCClient`向`JRMPListener`发起`JRMP`请求, 而在`jdk8u231`版本及以上的`DGCImpl_Stub#dirty`方法中多了一个`setObjectInputFilter`的过程, 此时又会被`JEP290 check`到. `ByPass 8u231~8u240`的`Gadget`如下:
 
 ```text
@@ -492,7 +540,7 @@ StreamRemoteCall#executeCall –>
 ObjectInputSteam#readObject –> "demo"
 ```
 
-#### Gadget 分析
+####  6.2.1. <a name='Gadget'></a>Gadget 分析
 首先跟进`UnicastRemoteObject#readObject`方法, 在最后继续调用`UnicastRemoteObject#reexport`方法, 这里通过判断有无设置`csf`和`ssf`来分别调用两种重载方法.
 
 ![UnicastRemoteObject#readObject](./images/42.png)
@@ -536,7 +584,7 @@ TCPTransport#listen 方法创建监听栈.
 
 ![StreamRemoteCall#executeCall](./images/53.png)
 
-#### Demo
+####  6.2.2. <a name='Demo-1'></a>Demo
 需要注意的是, 本地在`bind`或者`rebind`一个对象的时候, 在序列化对象的时候会来到`MarshalOutputStream#replaceObject`方法. 如果这个对象没有继承`RemoteStub`的话, 原先的`UnicastRemoteObject`会被转化成`RemoteObjectInvocationHandler`, 服务端也就无法触发`UnicastRemoteObject#readObject`方法. 这里可以采用重写`RegistryImpl#bind`方法, 在序列化之前通过反射`ObjectInputStream`, 修改`enableReplace`为`false`
 
 ![](./images/54.png)
@@ -662,18 +710,18 @@ java -cp ~/Desktop/ysoserial.jar ysoserial.exploit.JRMPListener 9999 CommonsColl
 
 ![](./images/56.png)
 
-#### 修复
+####  6.2.3. <a name='-1'></a>修复
 `JDK8u241`在`RemoteObjectInvocationHandler#invokeRemoteMethod`中声明要调用的方法的类, 必须实现`Remote`接口, 而`RMIServerSocketFactory`类没有实现该接口, 于是会直接抛出异常无法调用.
 
 ![](./images/57.png)
 
-## 参考
+##  7. <a name='-1'></a>参考
  - [漫谈 JEP 290](https://paper.seebug.org/1689/)
  - [RMI-JEP290的分析与绕过](https://www.anquanke.com/post/id/259059)
  - [反序列化漏洞的末日？JEP290机制研究](https://paper.seebug.org/454/)
  - [JEP 290: Filter Incoming Serialization Data](https://openjdk.java.net/jeps/290)
 
-## 工具
+##  8. <a name='-1'></a>工具
 学习时找`ysoserial`的现成`jar`包找了半天, 这里挂个`ysoserial`下载链接(但愿不会寄了)方便后续学习和复习时用.
  - [ysoserial](https://jitpack.io/com/github/frohoff/ysoserial/)
 
