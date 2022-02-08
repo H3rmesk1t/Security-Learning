@@ -1,7 +1,12 @@
-# 定义
+# Java安全学习—Javassist
+
+作者: H3rmesk1t@D1no
+
+## 定义
+
 > `Java`字节码以二进制的形式存储在`.class`文件中，每一个`.class`文件包含一个`Java`类或接口，`Javaassist`就是一个用来处理`Java`字节码的类库，它可以在一个已经编译好的类中添加新的方法，或者是修改已有的方法，并且不需要对字节码方面有深入的了解，同时也可以去生成一个新的类对象，通过完全手动的方式
 
-# 创建 class 文件
+## 创建 class 文件
 > 创建对象的类 Demo 代码
 
 ```java
@@ -121,8 +126,8 @@ public class Demo {
 > 4. `setBody`: 将方法的内容设置为要写入的代码，当方法被`abstract`修饰时，该修饰符被移除
 > 5. `make`: 创建一个新的方法
 
-# 调用生成的类对象
-## 反射调用
+## 调用生成的类对象
+### 反射调用
 
 > 将写入文件部分代码换成如下代码
 ```java
@@ -133,7 +138,7 @@ Method execute = demo.getClass().getMethod("printWayName");
 execute.invoke(demo);
 ```
 
-## 读取 .class 文件调用
+### 读取 .class 文件调用
 
 ```java
 ClassPool classPoll = ClassPool.getDefault();
@@ -144,7 +149,7 @@ Object demo = ctClass.toClass().newInstance();
 //  ...... 下面和通过反射的方式一样去使用
 ```
 
-## 接口调用
+### 接口调用
 > 新建一个`DemoI`接口类
 
 ```java
@@ -171,7 +176,7 @@ demo.setWay("xiaolv");
 demo.printWay();
 ```
 
-# 修改现有的类
+## 修改现有的类
 > 一般会遇到的使用场景应该是修改已有的类，比如常见的日志切面，权限切面都是利用`javassist`来实现这个功能
 
 > 例如如下类对象
