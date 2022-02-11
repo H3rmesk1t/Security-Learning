@@ -21,3 +21,10 @@
 > 21. 2021-11-29：Java动态加载字节码、Java安全学习 Commons-Collections3链
 > 22. 2021-11-30：Java安全学习 Commons-Collections4链、Java安全学习 Commons-Collections5链、Java安全学习 Commons-Collections6链、Java安全学习 Commons-Collections7链
 > 23. 2021-12-16：VPS搭建CobaltStrike
+> 24. 2022-1-19：Java安全学习—RMI
+> 25. 2022-1-29：Java安全学习—JEP290
+> 26. 2022-2-4：Java安全学习—JNDI注入
+> 27. 2022-2-7：Java安全学习—fastjson
+> 28. 2022-2-9：Python 内存马
+> 29. 2022-2-10：Java安全学习—Log4j2远程代码执行漏洞
+> 30. 2022-2-11：Java安全学习—CommonsBeanUtils链
