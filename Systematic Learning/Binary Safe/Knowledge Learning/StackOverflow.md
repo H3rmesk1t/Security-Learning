@@ -1,4 +1,4 @@
-# 栈溢出-基本ROP
+# 栈溢出
 
 Author: H3rmesk1t
 
@@ -760,15 +760,6 @@ prot 内存的权限
 
 ```
 
-<div align=center><img src="./images/41.png"></div>
-<div align=center><img src="./images/42.png"></div>
-<div align=center><img src="./images/43.png"></div>
-<div align=center><img src="./images/44.png"></div>
-<div align=center><img src="./images/45.png"></div>
-<div align=center><img src="./images/46.png"></div>
-<div align=center><img src="./images/47.png"></div>
-<div align=center><img src="./images/48.png"></div>
-<div align=center><img src="./images/49.png"></div>
 
 # Linux 系统调用号表
 ## 32 位
