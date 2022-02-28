@@ -37,16 +37,10 @@
 
 ### ⚡ Python Security
  - [Flask 内存马](https://github.com/H3rmesk1t/Learning_summary/blob/main/WebSec/Python%20Flask%20%E5%86%85%E5%AD%98%E9%A9%AC.md) ✔️
- - 
 
 
-### ⚡ middleware Security
+### ⚡ Component Security
  - [Redis 攻击方式](https://github.com/H3rmesk1t/Learning_summary/blob/main/WebSec/Redis%20%E6%94%BB%E5%87%BB%E6%96%B9%E5%BC%8F.md) ✔️
-
-### ⚡ Tips
- - [MD5](https://github.com/H3rmesk1t/Learning_summary/blob/main/WebSec/MD5%E9%A2%98%E7%9B%AE%E8%80%83%E7%82%B9.md) ✔️
- - [正则表达式](https://github.com/H3rmesk1t/Learning_summary/blob/main/WebSec/%E6%AD%A3%E5%88%99%E8%A1%A8%E8%BE%BE%E5%BC%8F.md) ✔️
- - [浅谈 Proc 目录](https://github.com/H3rmesk1t/Learning_summary/blob/main/WebSec/%E6%B5%85%E8%B0%88Proc%E7%9B%AE%E5%BD%95.md) ✔️
 
 
 ## 🌱 Binary Security
@@ -62,3 +56,8 @@
 ## 🌱 Intranet Security
 ### ⚡ Tools
  - [VPS 搭建 CobaltStrike](https://github.com/H3rmesk1t/Learning_summary/blob/main/IntranetSec/VPS%E6%90%AD%E5%BB%BACobaltStrike.md) ✔️
+
+### ⚡ Tips
+ - [MD5](https://github.com/H3rmesk1t/Learning_summary/blob/main/WebSec/MD5%E9%A2%98%E7%9B%AE%E8%80%83%E7%82%B9.md) ✔️
+ - [正则表达式](https://github.com/H3rmesk1t/Learning_summary/blob/main/WebSec/%E6%AD%A3%E5%88%99%E8%A1%A8%E8%BE%BE%E5%BC%8F.md) ✔️
+ - [浅谈 Proc 目录](https://github.com/H3rmesk1t/Learning_summary/blob/main/WebSec/%E6%B5%85%E8%B0%88Proc%E7%9B%AE%E5%BD%95.md) ✔️
