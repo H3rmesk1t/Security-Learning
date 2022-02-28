@@ -28,16 +28,24 @@
  - [Commons-Collections6](https://github.com/H3rmesk1t/Learning_summary/blob/main/WebSec/Java%E5%AE%89%E5%85%A8%E5%AD%A6%E4%B9%A0-Commons-Collections6%E9%93%BE.md) ✔️
  - [Commons-Collections7](https://github.com/H3rmesk1t/Learning_summary/blob/main/WebSec/Java%E5%AE%89%E5%85%A8%E5%AD%A6%E4%B9%A0-Commons-Collections7%E9%93%BE.md) ✔️
  - [CommonsBeanutils](https://github.com/H3rmesk1t/Learning_summary/blob/main/WebSec/Java%E5%AE%89%E5%85%A8%E5%AD%A6%E4%B9%A0%E2%80%94CommonsBeanutils%E9%93%BE.md) ✔️
+ - [C3P0](www.baidu.com) ❌
+ - [Spring1](www.baidu.com) ❌
+ - [Spring2](www.baidu.com) ❌
  - [RMI](https://github.com/H3rmesk1t/Learning_summary/blob/main/WebSec/Java%E5%AE%89%E5%85%A8%E5%AD%A6%E4%B9%A0-RMI%E5%AD%A6%E4%B9%A0.md) ✔️
  - [JNDI](https://github.com/H3rmesk1t/Learning_summary/blob/main/WebSec/Java%E5%AE%89%E5%85%A8%E5%AD%A6%E4%B9%A0-JNDI%E6%B3%A8%E5%85%A5.md) ✔️
  - [JEP290](https://github.com/H3rmesk1t/Learning_summary/blob/main/WebSec/Java%E5%AE%89%E5%85%A8%E5%AD%A6%E4%B9%A0-JEP290.md) ✔️
  - [Fastjson 反序列化漏洞](https://github.com/H3rmesk1t/Learning_summary/blob/main/WebSec/Java%E5%AE%89%E5%85%A8%E5%AD%A6%E4%B9%A0%E2%80%94fastjson.md) ✔️
  - [Log4j2 远程代码执行漏洞](https://github.com/H3rmesk1t/Learning_summary/blob/main/WebSec/Java%E5%AE%89%E5%85%A8%E5%AD%A6%E4%B9%A0%E2%80%94Log4j2%E8%BF%9C%E7%A8%8B%E4%BB%A3%E7%A0%81%E6%89%A7%E8%A1%8C%E6%BC%8F%E6%B4%9E.md) ✔️
+ - [Shiro 安全](www.baidu.com) ❌
+ - [Struts2 系列漏洞](www.baidu.com) ❌
+ - [JavaWeb 内存马](www.baidu.com) ❌
+ - [JDBC Connection URL Attack](www.baidu.com) ❌
 
 
 ## 🌱 Python Security
  - [Flask 内存马](https://github.com/H3rmesk1t/Learning_summary/blob/main/WebSec/Python%20Flask%20%E5%86%85%E5%AD%98%E9%A9%AC.md) ✔️
 
+## 🌱 NodeJS Security
 
 ## 🌱 Component Security
  - [Redis 攻击方式](https://github.com/H3rmesk1t/Learning_summary/blob/main/WebSec/Redis%20%E6%94%BB%E5%87%BB%E6%96%B9%E5%BC%8F.md) ✔️
