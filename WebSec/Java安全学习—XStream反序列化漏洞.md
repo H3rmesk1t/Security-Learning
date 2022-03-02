@@ -371,3 +371,4 @@ Hello, h3rmesk1t
  - [Java XStream反序列化漏洞](https://www.mi1k7ea.com/2019/10/21/XStream%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E/#%E5%A4%8D%E7%8E%B0-2)
  - [XStream反序列化CVE-2020-26217漏洞分析](https://www.anquanke.com/post/id/222830#h2-2)
  - [Xstream反序列化分析（CVE-2021-39149）](https://xz.aliyun.com/t/10360)
+ - [回顾XStream反序列化漏洞](https://www.anquanke.com/post/id/204314#h3-7)
