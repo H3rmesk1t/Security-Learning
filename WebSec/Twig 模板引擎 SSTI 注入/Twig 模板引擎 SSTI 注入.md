@@ -1,3 +1,7 @@
+# Twig 模板引擎 SSTI 注入
+
+Author: H3rmesk1t
+
 # 简介
 > 1. Twig 是一个灵活、快速、安全的 PHP 模板语言，它将模板编译成经过优化的原始 PHP 代码
 > 2. Twig 拥有一个 Sandbox 模型来检测不可信的模板代码
@@ -246,7 +250,7 @@ public function getFilter($name)
     }
 ```
 
-<img src="./md5和twig/1.png" alt="">
+<img src="./images/1.png" alt="">
 
 ## Twig 2.x && Twig 3.x
 > 测试代码
@@ -385,7 +389,7 @@ function twig_sort_filter($array, $arrow = null)
 
 > 从源码中可以看到，`$array` 和 `$arrow` 直接被 `uasort` 函数调用，由于 `uasort` 函数可以使用用户自定义的比较函数对数组中的元素按键值进行排序，如果自定义一个危险函数将造成代码执行或命令执行
 
-<img src="./md5和twig/2.png" alt="">
+<img src="./images/2.png" alt="">
 
 > Payload
 
@@ -421,7 +425,7 @@ function twig_array_filter($array, $arrow)
 
 > 从源码中可以看到 `$array` 和 `$arrow` 直接被 `array_filter` 函数调用，`array_filter` 函数可以用回调函数过滤数组中的元素，如果自定义一个危险函数将造成代码执行或命令执行
 
-<img src="./md5和twig/3.png" alt="">
+<img src="./images/3.png" alt="">
 
 > Payload
 
