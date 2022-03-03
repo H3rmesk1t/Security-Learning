@@ -211,7 +211,7 @@ PharFileInfo::__toString
 # 常见 PHP 原生类利用分析
 ## SoapClient 类
 
-<img src="./PHP原生类/1.png" alt="">
+<img src="./images/1.png" alt="">
 
 > `SoapClient::__call`：由于当`__call`方法被触发后，它可以发送`HTTP`和`HTTPS`请求，因此可以进行`SSRF`利用
 
@@ -266,7 +266,7 @@ $test = unserialize(serialize($demo));
 $test->H3rmesk1t();    // 随便调用对象中不存在的方法, 触发__call方法进行ssrf
 ?>
 ```
-<img src="./PHP原生类/2.png" alt="">
+<img src="./images/2.png" alt="">
 
 
 > 正常情况下的`SoapClient`类调用一个不存在的函数会去调用`__call()`方法，发出请求，`SoapClient`发出的请求包的`user_agent`是完全可控的，结合`CRLF注入`可以构造一个完全可控的`POST请求`，因为`POST请求`最关键的`Content-Length`和`Content-Type`都在`user_agent`之下；如果是`GET请求`就简单得多，只需要构造好`location`就可以，需要注意的是`SoapClient`只会发出请求而不会收到响应
@@ -343,7 +343,7 @@ $demo = new Error("<script>alert('h3rmesk1t')</script>");
 echo urlencode(serialize($demo));
 ?>
 ```
-<img src="./PHP原生类/3.png" alt="">
+<img src="./images/3.png" alt="">
 
 ### 使用 Error/Exception 内置类绕过哈希比较
 > `Error`和`Exception`这两个`PHP`内置类，不仅限于`XSS`，还可以通过巧妙的构造绕过`md5()`函数和`sha1()`函数的比较
@@ -351,7 +351,7 @@ echo urlencode(serialize($demo));
 #### Error 类
 > `Error`是所有`PHP`内部错误类的基类，该类是在`PHP7.0.0`中开始引入的
 
-<img src="./PHP原生类/4.png" alt="">
+<img src="./images/4.png" alt="">
 
 ```php
 类属性：
@@ -375,7 +375,7 @@ echo urlencode(serialize($demo));
 #### Exception 类
 > `Exception`是所有异常的基类，该类是在`PHP5.0.0`中开始引入的
 
-<img src="./PHP原生类/5.png" alt="">
+<img src="./images/5.png" alt="">
 
 ```php
 类属性：
@@ -399,13 +399,13 @@ echo urlencode(serialize($demo));
 
 > 以`Error`为例，看看当触发`__toString()`方法时会发生什么
 
-<img src="./PHP原生类/6.png" alt="">
+<img src="./images/6.png" alt="">
 
 > 发现这将会以字符串的形式输出当前报错，并且包含当前的错误信息`("h3rmesk1t")`以及当前报错的行号`("2")`，而传入`Error("payload",1)`中的错误代码`"1"`则没有输出出来
 
 > 再来看看另外一种情况
 
-<img src="./PHP原生类/7.png" alt="">
+<img src="./images/7.png" alt="">
 
 > 可以发现`$demo1`和`$demo2`这两个错误对象本身是不同的，但是`__toString()`方法返回的结果是相同的，这里之所以需要在同一行是因为`__toString()`返回的数据包含当前行号
 
@@ -414,9 +414,9 @@ echo urlencode(serialize($demo));
 ## SimpleXMLElement 类
 > `SimpleXMLElement`类中的构造方法`SimpleXMLElement::__construct`的定义如下
 
-<img src="./PHP原生类/8.png" alt="">
+<img src="./images/8.png" alt="">
 
-<img src="./PHP原生类/9.png" alt="">
+<img src="./images/9.png" alt="">
 
 ### 使用 SimpleXMLElement 类进行 XXE
 > 可以看到通过设置第三个参数`data_is_url`为`true`，就可以实现远程`xml文件`的载入，第二个参数的常量值设置为`2`即可，第一个参数`data`就是自己设置的`payload`的`url`地址，即用于引入的外部实体的`url`，这样的话可以控制目标调用的类的时候，便可以通过`SimpleXMLElement`这个内置类来构造`XXE`
@@ -551,7 +551,7 @@ flags：用于打开档案的模式。有以下几种模式：
 #### DirectoryIterator 类
 > `DirectoryIterator`类提供了一个用于查看文件系统目录内容的简单接口，该类的构造方法将会创建一个指定目录的迭代器
 
-<img src="./PHP原生类/10.png" alt="">
+<img src="./images/10.png" alt="">
 
 ```php
 <?php
@@ -559,11 +559,11 @@ $dir = new DirectoryIterator("/");
 echo $dir;
 ?>
 ```
-<img src="./PHP原生类/11.png" alt="">
+<img src="./images/11.png" alt="">
 
 > 这里可以配合`glob://协议(查找匹配的文件路径模式)`来寻找想要的文件路径
 
-<img src="./PHP原生类/12.png" alt="">
+<img src="./images/12.png" alt="">
 
 > 这里还可以对`$dir`对象进行遍历从而来输出全部的文件名
 
@@ -576,7 +576,7 @@ echo $dir;
     }
 ?>
 ```
-<img src="./PHP原生类/13.png" alt="">
+<img src="./images/13.png" alt="">
 
 #### FilesystemIterator 类
 > `FilesystemIterator`类与`DirectoryIterator`类相同，提供了一个用于查看文件系统目录内容的简单接口，该类的构造方法将会创建一个指定目录的迭代器，该类的使用方法与`DirectoryIterator`类也是基本相同的
@@ -634,14 +634,14 @@ public DirectoryIterator::__toString(): string
 public DirectoryIterator::valid(): bool
 }
 ```
-<img src="./PHP原生类/14.png" alt="">
+<img src="./images/14.png" alt="">
 
 #### GlobIterator 类
 > 与前两个类的作用相似，`GlobIterator`类也可以遍历一个文件目录，使用方法与前两个类也基本相似，但与上面略不同的是其行为类似于`glob()`，可以通过模式匹配来寻找文件路径
 
-<img src="./PHP原生类/15.png" alt="">
+<img src="./images/15.png" alt="">
 
-<img src="./PHP原生类/16.png" alt="">
+<img src="./images/16.png" alt="">
 
 #### trick:使用可遍历目录类绕过 open_basedir
 > 使用 DirectoryIterator 类
@@ -791,7 +791,7 @@ foreach($context as $f){
 ?>
 ```
 
-<img src="./PHP原生类/17.png" alt="">
+<img src="./images/17.png" alt="">
 
 ## 使用 ReflectionMethod 类获取类方法的相关信息
 > `ReflectionMethod`继承`ReflectionFunctionAbstract`这个抽象类，这个抽象类实现`Reflector`接口
@@ -850,6 +850,6 @@ class Demo {
 $ref = new ReflectionMethod('Demo', 'h3');
 var_dump($ref->getDocComment());
 ```
-<img src="./PHP原生类/18.png" alt="">
+<img src="./images/18.png" alt="">
 
 > 同时这里还有一个`ReflectionFunction`，例如`[new ReflectionFunction('system'),invokeArgs](array('aaa.txt'=>'dir'));`可执行函数调用
