@@ -1,3 +1,5 @@
+# Java安全学习-Commons-Collections5链
+
 # 环境搭建
 > 1. `JDK`版本：JDK1.8u66
 > 2. `Commons-Collections`版本：3.1
@@ -30,11 +32,11 @@
 ## TiedMapEntry
 > `org.apache.commons.collections.keyvalue.TiedMapEntry`是一个`Map.Entry`的实现类，它绑定了底层`map`的`Entry`，用来使一个`map entry`对象拥有在底层修改`map`的功能
 
-<img src="./Java安全学习-Commons-Collections4567/11.png" alt="">
+<img src="./images/11.png" alt="">
 
 > `TiedMapEntry`中有一个成员属性`Map`，`TiedMapEntry`的`getValue()`方法会调用底层`map`的`get()`方法，可以用来触发`LazyMap`的`get`，继续跟进分析，发现`TiedMapEntry`的`equals/hashCode/toString`都可以触发
 
-<img src="./Java安全学习-Commons-Collections4567/12.png" alt="">
+<img src="./images/12.png" alt="">
 
 > 测试代码
 
@@ -109,12 +111,12 @@ public class TiedMapEntryDemo {
     }
 }
 ```
-<img src="./Java安全学习-Commons-Collections4567/14.png" alt="">
+<img src="./images/14.png" alt="">
 
 ## BadAttributeValueExpException
 > 在`javax.management.BadAttributeValueExpException`类中，当`System.getSecurityManager() == null`或者`valObj`是除了`String`的其他基础类型时，都会调用`valObj`的`toString()`方法，利用这个触发点来配合前面的`TiedMapEntry`完成链子的构造
 
-<img src="./Java安全学习-Commons-Collections4567/13.png" alt="">
+<img src="./images/13.png" alt="">
 
 # CommonsCollections5 分析
 > 利用上面两个前置知识的触发点，配合`LazyMap`就可以完成一条新的攻击路径，也就是`CommonsCollections5`链
@@ -187,7 +189,7 @@ public class CommonsCollections5Gadge1 {
     }
 }
 ```
-<img src="./Java安全学习-Commons-Collections4567/15.png" alt="">
+<img src="./images/15.png" alt="">
 
 ## POC-2
 
@@ -284,7 +286,7 @@ public class CommonsCollections5Gadge2 {
     }
 }
 ```
-<img src="./Java安全学习-Commons-Collections4567/16.png" alt="">
+<img src="./images/16.png" alt="">
 
 # 调用链
 
