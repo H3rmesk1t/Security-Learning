@@ -1,3 +1,7 @@
+# Java安全学习-Commons-Collections3链
+
+Author: H3rmesk1t
+
 # 环境搭建
 > 1. `JDK`版本：JDK1.8u66（要求JDK8u71以下）
 > 2. `Commons-Collections`版本：3.1
@@ -30,12 +34,12 @@
 ## TrAXFilter
 > 这个类的构造函数中调用了`(TransformerImpl) templates.newTransformer()`，免去了用`InvokerTransformer`手工调用`newTransformer()`方法，
 
-<img src="./Java安全学习-Commons-Collections3链和动态加载字节码/9.png">
+<img src="./images/9.png">
 
 ## InstantiateTransformer
 > 上面虽然直接调用了`newTransformer()`，但是缺少了`InvokerTransformer`，`TrAXFilter`的构造方法也是无法调用的，因此这里利用`Commons-Collections`提供的`org.apache.commons.collections.functors.InstantiateTransformer`来通过反射创建类的实例，`transform()`方法接收一个`Class`类型的对象，通过`getConstructor()`来获取构造方法，并通过`newInstance()`创建类实例
 
-<img src="./Java安全学习-Commons-Collections3链和动态加载字节码/10.png" alt="">
+<img src="./images/10.png" alt="">
 
 # CommonsCollections3 分析
 > `CommonsCollections3`链其实是`CommonsCollections1`链和`CommonsCollections2`链的结合，为了绕过⼀些规则对`InvokerTransformer`的限制，`CommonsCollections3`并没有使⽤到`InvokerTransformer`来调⽤任意⽅法，根据上面的前置知识，可以利⽤`InstantiateTransformer()`来调⽤到`TrAXFilter()`的构造⽅法，再利⽤其构造⽅法⾥的`templates.newTransformer()`调⽤到`TemplatesImpl`⾥的字节码，这样就比避免使用`InvokerTransformer`
@@ -113,7 +117,7 @@ public class TrAxFilterDemo {
 }
 ```
 
-<img src="./Java安全学习-Commons-Collections3链和动态加载字节码/11.png" alt="">
+<img src="./images/11.png" alt="">
 
 ## TransformedMap
 
@@ -209,7 +213,7 @@ public class CommonsCollections3TransformedMap {
 }
 ```
 
-<img src="./Java安全学习-Commons-Collections3链和动态加载字节码/12.png" alt="">
+<img src="./images/12.png" alt="">
 
 ## LazyMap
 
@@ -305,7 +309,7 @@ public class CommonsCollections3LazyMap {
 }
 ```
 
-<img src="./Java安全学习-Commons-Collections3链和动态加载字节码/13.png" alt="">
+<img src="./images/13.png" alt="">
 
 # 调用链
 
