@@ -59,16 +59,16 @@ TemplatesImpl
 `org.apache.commons.beanutils.PropertyUtils`类使用`Java`反射`API`来调用`Java`对象上的通用属性`getter`和`setter`操作的实用方法, 这些方法的具体使用逻辑其实是由`org.apache.commons.beanutils.PropertyUtilsBean`来实现的. 这个类有个共有静态方法`getProperty`, 其接收两个参数`bean`(类对象)和`name`(属性名), 方法会返回这个类的这个属性的值. 这就类似于一个`Field`的反射工具类, 不过不是直接使用反射取值, 而是使用反射调用其`getter`方法取值.
 
 
-![](./Java安全学习—CommonsBeanutils链/1.png)
+![](./images/1.png)
 
 ### BeanComparator
 `BeanComparator`是`Commons-Beanutils`提供的用来比较两个`JavaBean`是否相等的类, 其实现了`java.util.Comparator`接口. `BeanComparator`在初始化时可以指定`property`属性名称和`comparator`对比器, 如果不指定则默认是`ComparableComparator`.
 
-![](./Java安全学习—CommonsBeanutils链/2.png)
+![](./images/2.png)
 
 `BeanComparator`的`compare`方法接收两个对象, 分别调用`PropertyUtils.getProperty`方法获取两个对象的`property`属性的值, 然后调用`internalCompare`方法调用实例化时初始化的`comparator`的`compare`方法进行比较.
 
-![](./Java安全学习—CommonsBeanutils链/3.png)
+![](./images/3.png)
 
 ## ExploitWithCC
 根据上面的思路, 构造出最终的攻击代码如下:
@@ -142,7 +142,7 @@ public class CommonsBeanUtilsWithCC {
 }
 ```
 
-![](./Java安全学习—CommonsBeanutils链/4.png)
+![](./images/4.png)
 
 ## ExploitWithoutCC
 在`ExploitWithoutCC`中的代码可成功构造反序列化利用, 但是`BeanComparator`的默认`comparator`是`ComparableComparator`, 这是个`CommonCollections`中的类, 导致了这明明是一条`CB`的触发链, 却要同时依赖`CC`. 增加了很多利用的限制. 因此为了改变这一现状, 在实例化`BeanComparator`时赋予其一个`JDK`自带的并且实现了`Serializable`接口的`comparator`即可, 比如`java.util.Collections$ReverseComparator`和`java.lang.String$CaseInsensitiveComparator`等. 通过反射实例化`Comparator`, 并在`BeanComparator`初始化时进行指定即可.
