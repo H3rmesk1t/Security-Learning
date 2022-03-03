@@ -1,3 +1,7 @@
+# Java安全学习-Commons-Collections7链
+
+Author: H3rmesk1t
+
 # 环境搭建
 > 1. `JDK`版本：JDK1.8u66
 > 2. `Commons-Collections`版本：3.1
@@ -39,7 +43,7 @@
 
 > 跟进`Hashtable`发现，在`readObject`方法中，会调用`reconstitutionPut()`方法，并在`reconstitutionPut()`方法中会调用`key.hashCode()`，后续的调用逻辑和`CommonsCollections6`链基本一致
 
-<img src="./Java安全学习-Commons-Collections4567/23.png" alt="">
+<img src="./images/23.png" alt="">
 
 ## 哈希碰撞机制
 > 在[ProgrammerSought](https://www.programmersought.com/article/94401321514/)上给出的说法是
@@ -51,13 +55,13 @@ The so-called hash conflict, that is, the two key values ​​are calculated by
 
 > 那么要如何构造出一个`hash`冲突呢，跟进`HashMap#hash`方法
 
-<img src="./Java安全学习-Commons-Collections4567/27.png" alt="">
+<img src="./images/27.png" alt="">
 
 > 继续跟进`hashcode()`方法，根据`for`循环中的代码，不难推出`Hash`值的计算公式
 
-<img src="./Java安全学习-Commons-Collections4567/28.png" alt="">
+<img src="./images/28.png" alt="">
 
-<img src="./Java安全学习-Commons-Collections4567/29.png" alt="">
+<img src="./images/29.png" alt="">
 
 > 这也就不难解释为什么`ysoserial`项目中的`CommonsCollections7`链中是`yy`和`zZ`了，需要时，利用`z3`来计算字符串位数不一样情况下的可能值即可
 
@@ -74,21 +78,21 @@ ord("Z") == 90
 # CommonsCollections7 分析
 > 在`CommonsCollections`链中，利用`AbstractMap#equals`来触发对`LazyMap#get`方法的调用，这里的`m`如果是可控的话，那么设置`m`为`LazyMap`，就可以完成后面的链子构造
 
-<img src="./Java安全学习-Commons-Collections4567/24.png" alt="">
+<img src="./images/24.png" alt="">
 
 > 继续跟进看看`equals`方法的调用点在哪，在前面的`Hashtable#reconstitutionPut`方法中存在着调用点：`e.key.equals(key)`，如果这里的`key`可控的话，上面的`m`也就是可控的
 
 > 观察到在`readObject`方法中传递进去的`key`，相应的，那么在`writeObject`处也会存在`Hashtable#put`进入的值
 
-<img src="./Java安全学习-Commons-Collections4567/25.png" alt="">
+<img src="./images/25.png" alt="">
 
 > 这里还需要注意一个点，由于`if`语句是用`&&`连接判断条件的，那么要执行到后面的`e.key.equals(key)`，就必须先要满足`e.hash == hash`，接着调用`equals`方法，这里利用到了`Hash`冲突(`Hash`碰撞)机制
 
-<img src="./Java安全学习-Commons-Collections4567/26.png" alt="">
+<img src="./images/26.png" alt="">
 
 > 在`POC`中移除第二个`LazyMap`中的元素是因为`get`方法向当前的`map`添加了新元素，从而`map2`变成了两个元素
 
-<img src="./Java安全学习-Commons-Collections4567/31.png" alt="">
+<img src="./images/31.png" alt="">
 
 ## POC
 
@@ -167,7 +171,7 @@ public class CommonsCollections7Gadget {
     }
 }
 ```
-<img src="./Java安全学习-Commons-Collections4567/30.png" alt="">
+<img src="./images/30.png" alt="">
 
 # 调用链
 
