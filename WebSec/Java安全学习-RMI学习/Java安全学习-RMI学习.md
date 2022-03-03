@@ -11,7 +11,7 @@ RMI: Remote Method Invocation, 顾名思义是一种调用远程位置的对象�
 
 在`RMI`中引入了两个概念来解决网络通信的复杂性, 分别是`Stubs`(客户端存根)、`Skeletons`(服务端骨架), 当客户端试图调用一个在远端的对象时, 实际调用的是客户端本地的一个代理类(Stub), 而在调用远端的目标类之前, 也会进过一个对应的远端代理类(Skeletons), 它从客户端本地的代理类中接受远程方法并传递给真实的目标类. 
 
-![RMI调用时序图](./Java安全学习-RMI学习/1.png)
+![RMI调用时序图](./images/1.png)
 
 在使用`RMI`时, 先要定义一个能够远程调用的接口, 该接口必须扩展`java.rmi.Remote`接口, 用来远程调用的对象作为该接口的实例, 同时这个接口中的所有方法都必须声明抛出`java.rmi.RemoteException`异常. 示例代码如下:
 
@@ -62,7 +62,7 @@ public class RemoteObject extends UnicastRemoteObject implements RemoteInterface
  - port: 注册表接受调用的端口号, 默认为1099
  - name: 注册`Remote Object`的引用的名称, 不能是注册表中的一些关键词
 
-![Naming类](./Java安全学习-RMI学习/2.png)
+![Naming类](./images/2.png)
 
 `Naming`是一个用来对注册表进行操作的类, 在`Naming`中提供了`lookup`(查询)、`bind`(绑定)、`rebind`(重新绑定)、`unbind`(解除绑定)、`list`(列表)等方法, 用来对注册表进行相应的操作. 这些方法的具体实现方法为调用`LocateRegistry.getRegistry`方法来获取`Registry`接口的实现类, 并调用其相关方法进行实现.
 
@@ -119,9 +119,9 @@ public class RMIClient {
 
 需要注意的是`RemoteInterface`接口在`Client`/`Server`/`Registry`均应该存在, 只不过`Server`和`Registry`通常在同一端上.
 
-![RMI简单通信](./Java安全学习-RMI学习/3.png)
+![RMI简单通信](./images/3.png)
 
-![RMI简单通信流程图](./Java安全学习-RMI学习/4.png)
+![RMI简单通信流程图](./images/4.png)
 
 在上图中简单实现了一次远程调用通信, 这里再明确几个特性:
  - 动态加载类: 如果客户端在调用时传递了一个可序列化对象, 但是这个对象在服务端并不存在时, 服务端会抛出`ClassNotFound`的异常, 但是`RMI`支持动态类加载, 因此当设置了`java.rmi.server.codebase`时, 会尝试从其中的地址获取`.class`并加载以及反序列化. 可使用`System.setProperty("java.rmi.server.codebase", "http://127.0.0.1:9999/");`进行设置, 或使用启动参数`-Djava.rmi.server.codebase="http://127.0.0.1:9999/"`进行指定.
@@ -131,79 +131,79 @@ public class RMIClient {
 ## 本地获取注册中心
 获取注册中心有两种方式, 第一种是创建时获取, 即`LocateRegistry#createRegistry`, 在`createRegistry`中有两个方法
 
-![createRegistry方法](./Java安全学习-RMI学习/5.png)
+![createRegistry方法](./images/5.png)
 
 第一种方法只需要传递注册中心监测的端口——`port`, 另一种方法除了传递注册中心监测的端口外, 还需要传递`RMIClientSocketFactory`和`RMIServerSocketFactory`对象, 两个方法最终获取到的都是`RegistryImpl`对象. 由于两种方法的差别并不大, 这里只分析第一种方法.
 
 跟进`RegistryImpl`, 其先判断`var1`, 即传入的`port`值, 是否为默认端口`1099`, 并检查安全策略是否开启. 在`LiveRef`中封装了一些信息, 包括`IP`地址、需要监听的端口号等. 接着调用`setup`方法将`UnicastServerRef`对象传递进去
 
-![RegistryImpl方法](./Java安全学习-RMI学习/6.png)
+![RegistryImpl方法](./images/6.png)
 
 在`new UnicastServerRef`的过程中把`LiveRef`对象传递进去, 并进行一些数据封装的操作
 
-![UnicastServerRef方法](./Java安全学习-RMI学习/7.png)
+![UnicastServerRef方法](./images/7.png)
 
-![RegistryImpl#setup方法](./Java安全学习-RMI学习/8.png)
+![RegistryImpl#setup方法](./images/8.png)
 
 跟入`UnicastServerRef#exportObject`, 先获取传入对象`var1`的类, 接着调用`Util#createProxy`方法, 传入`class sun.rmi.registry.RegistryImpl`、`Ref`以及`forceStubUse`的值(是否存在以`_Stub`结尾的类, 即`remoteClass + "_Stub"`, `forceStubUse`表示当不存在时是否抛出异常, 这里为`UnicastServerRef`方法中设置的值`false`).
 
-![UnicastServerRef#exportObject方法](./Java安全学习-RMI学习/9.png)
+![UnicastServerRef#exportObject方法](./images/9.png)
 
-![Util#createProxy方法](./Java安全学习-RMI学习/10.png)
+![Util#createProxy方法](./images/10.png)
 
 接着跟入`createStub`方法, 这里返回了`RegistryImpl_Stub`对象
 
-![createStub方法](./Java安全学习-RMI学习/11.png)
+![createStub方法](./images/11.png)
 
 接着回到前面调用`setSkeleton`方法, 这里和获取`RegistryImpl_Stub`对象一样的方法来获取`RegistryImpl_Skel`对象
 
-![Util#setSkeleton方法](./Java安全学习-RMI学习/12.png)
+![Util#setSkeleton方法](./images/12.png)
 
-![Util#createSkeleton方法](./Java安全学习-RMI学习/13.png)
+![Util#createSkeleton方法](./images/13.png)
 
 在创建完`Stub`和`Skel`对象时, 会实例化一个`Target`对象, 在`var6`中初始化了一些信息, 把上面获取到的`Stub`、`Skel`对象以及一些`IP`端口信息封装在一个对象里边, 之后会调用`LiveRef#exportObject`, 并且将`Target`对象传进去, 经过多个`exportObject`后到`TCPTransport#exportObject`后, 会进行一系列的网络层操作(监听端口等).
 
-![Target对象](./Java安全学习-RMI学习/14.png)
+![Target对象](./images/14.png)
 
-![exportObject对象调用链](./Java安全学习-RMI学习/15.png)
+![exportObject对象调用链](./images/15.png)
 
 跟入`TCPTransport#listen`方法, 在调用`TCPEndpoint#newServerSocket`时, 会开启端口监听.
 
-![TCPTransport#exportObject](./Java安全学习-RMI学习/16.png)
+![TCPTransport#exportObject](./images/16.png)
 
-![listen监听](./Java安全学习-RMI学习/17.png)
+![listen监听](./images/17.png)
 
 接着会设置`AcceptLoop`线程并触发其`run`方法.
 
-![AcceptLoop方法](./Java安全学习-RMI学习/18.png)
+![AcceptLoop方法](./images/18.png)
 
 跟入`TCPTransport#executeAcceptLoop`, 这里会获取到请求的一些相关信息, 比如`Host`之类, 之后在下边会创建一个线程调用`ConnectionHandler`来处理请求.
 
-![executeAcceptLoop方法](./Java安全学习-RMI学习/19.png)
+![executeAcceptLoop方法](./images/19.png)
 
 跟入`ConnectionHandler#run`, 这里的`var2`就是上边传进来的`ServerSocket`对象, 接着跟入`run0`方法.
 
-![ConnectionHandler#run方法](./Java安全学习-RMI学习/20.png)
+![ConnectionHandler#run方法](./images/20.png)
 
 跟入`ConnectionHandler#run0`, 在上边会获取一些客户端发来的信息, 下边会调用`TCPTransport#handleMessages`来处理请求.
 
-![ConnectionHandler#run0方法](./Java安全学习-RMI学习/21.png)
+![ConnectionHandler#run0方法](./images/21.png)
 
 跟入`TCPTransport#handleMessages`, 这里只需要关注`80`, 因为客户端发送数据的时候这里发的是`80`, 在上面的代码中先是创建了一个`StreamRemoteCall`对象, 并传入`var1`(当前连接的`Connection`对象).
 
-![TCPTransport#handleMessages方法](./Java安全学习-RMI学习/22.png)
+![TCPTransport#handleMessages方法](./images/22.png)
 
 跟入`TCPTransport#serviceCall`, 在上边获取了传来的一些信息, 例如`ObjID`, 接着会获取`Target`对象, 在下边会调用`UnicastServerRef#dispatch`来处理请求.
 
-![TCPTransport#serviceCall方法](./Java安全学习-RMI学习/23.png)
+![TCPTransport#serviceCall方法](./images/23.png)
 
 跟入`UnicastServerRef#dispatch`方法, 这里传递了两个参数, `Remote`对象和当前连接的`StreamRemoteCall`对象, 前面也是读一些数据, 接着会调用到`UnicastServerRef#oldDispatch`.
 
-![UnicastServerRef#dispatch方法](./Java安全学习-RMI学习/24.png)
+![UnicastServerRef#dispatch方法](./images/24.png)
 
 跟入`UnicastServerRef#oldDispatch`, 在`try-catch`结尾中调用了`this.skel.dispatch`方法, 此时的`this.skel`为刚刚创建的`RegistryImpl_Skel`对象.
 
-![UnicastServerRef#oldDispatch方法](./Java安全学习-RMI学习/25.png)
+![UnicastServerRef#oldDispatch方法](./images/25.png)
 
 跟入`this.skel.dispatch`方法, 进入真正处理请求的核心, 存在如下对应关系:
  - 0 -> bind
@@ -214,30 +214,30 @@ public class RMIClient {
 
 在这里会对每个调用的方法进行处理, 例如调用`lookup`方法, 会先`readObject`反序列化传进来的序列化对象, 之后再调用`var6.lookup`来注册服务, 此时的`var6`为`RegistryImpl`对象, 这个对象其实就是调用`createRegistry`获得的, 无论是客户端还是服务端, 最终其调用注册中心的方法都是通过对创建的`RegistryImpl`对象进行调用.
 
-![skel.dispatch方法](./Java安全学习-RMI学习/26.png)
+![skel.dispatch方法](./images/26.png)
 
 ## 远程获取注册中心
 获取注册中心的另一种方式则是远程获取, 即`LocateRegistry#getRegistry`, 通过`getRegistry`方法获得的对象是`RegistryImpl_Stub`对象, 与通过`createRegistry`获得的对象不同, `createRegistry`获得的伪`RegistryImpl`对象.
 
 前面的分析步骤和`LocateRegistry#createRegistry`类似, 这里分析在真正处理请求核心时的方法, 以`bind`为例, 先来看看通过`createRegistry`获得的注册中心调用`bind`的方法. 首先会调用`checkAccess`方法来进行判断, 会对当前的权限、来源`IP`等进行判断, 这里需要注意的一点是, 高版本`JDK`中不允许除了`localhost`之外的地址注册服务, 这里也会对该情况进行判断. 然后检查这个键是否已经被绑定过, 如果已经被绑定过, 则抛出一个`AlreadyBoundException`的错误; 反之则将键和对象都`put`到`Hashtable`中.
 
-![bind方法](./Java安全学习-RMI学习/27.png)
+![bind方法](./images/27.png)
 
-![checkAccess方法](./Java安全学习-RMI学习/28.png)
+![checkAccess方法](./images/28.png)
 
 接着看看`LocateRegistry#getRegistry`远程调用`bind`方法, 先通过`getRegistry`的方式远程获取注册中心, 此时获得到的对象为`RegistryImpl_Stub`, 接着跟入其`bind`方法, 先调用`UnicastRef#newCall`方法.
 
-![RegistryImpl_Stub#bind方法](./Java安全学习-RMI学习/29.png)
+![RegistryImpl_Stub#bind方法](./images/29.png)
 
 跟进`UnicastRef#newCall`, 这里的传入的`var3`是之前五种方法对于的数字, `0`即为`bind`方法, 在`newConnection`方法中, 会写入一些已经约定好的数据, 比如`IP`、端口等, 接着调用`StreamRemoteCall`
 
-![newCall方法](./Java安全学习-RMI学习/30.png)
+![newCall方法](./images/30.png)
 
-![newConnection方法](./Java安全学习-RMI学习/31.png)
+![newConnection方法](./images/31.png)
 
 跟入`StreamRemoteCall`, 这里在最开始写入了`80`, 这也解释了为什么在`TCPTransport#handleMessages`中只分析`80`的原因了, 接着还会写一些数据, 例如要调用的方法所对应的`num`和`ObjID`之类的. 
 
-![StreamRemoteCall方法](./Java安全学习-RMI学习/32.png)
+![StreamRemoteCall方法](./images/32.png)
 
 当调用完成后, 回到`bind`方法, 此时会写入两个内容
  - 序列化的`var1`: 待绑定远程对象对应的名称
@@ -245,22 +245,22 @@ public class RMIClient {
 
 接着调用`invoke`方法来将请求发出去, 注册中心在收到这条请求后会调用`Skel#dispatch`来处理.
 
-![bind序列化操作](./Java安全学习-RMI学习/33.png)
+![bind序列化操作](./images/33.png)
 
 跟进`Skel#dispatch`, 注册中心首先会`read`两个`Object`, 第一个即刚刚`write`进去的字符串对象, 第二个则是远程对象, 接着调用`var6.bind`来绑定服务, 即`RegistryImpl`对象.
 
-![Skel#dispatch方法](./Java安全学习-RMI学习/34.png)
+![Skel#dispatch方法](./images/34.png)
 
 ## Client和Server的通信
 需要注意, 客户端与服务端的通信只发生在调用远程方法时, 此时是客户端的远程代理对象与的`Skel`进行通信.
 
 在客户端获取的是注册中心封装好的代理对象, 所以默认会调用代理对象的`invoke`方法, 在这里会判断调用的方法是所有对象都有的, 还是只有远程对象才有的. 如果是前者, 则进入`invokeObjectMethod`中, 后者则进入`invokeRemoteMethod`中.
 
-![RemoteObjectInvocationHandler#invoke方法](./Java安全学习-RMI学习/35.png)
+![RemoteObjectInvocationHandler#invoke方法](./images/35.png)
 
 跟入`RemoteObjectInvocationHandle#invokeRemoteMethod`中, 这里会调用`ref.invoke`, 并把`proxy`、`method`、`args`以及`method`的`hash`传过去.
 
-![RemoteObjectInvocationHandle#invokeRemoteMethod方法](./Java安全学习-RMI学习/36.png)
+![RemoteObjectInvocationHandle#invokeRemoteMethod方法](./images/36.png)
 
 跟入`UnicastRef#invoke`, 和之前一样, 在`newConnection`会发送一些约定好了的数据, 接着调用`marshaValue`方法.
 
@@ -268,32 +268,32 @@ public class RMIClient {
 
 跟入`marshaValue`方法, 在`marshaValue`会将调用的方法要传递的参数序列化写到连接中, 如果传递的参数是对象, 就会写入序列化对象到这里, 接着回到`UnicastRef#invoke`中调用`StreamRemoteCall#executeCall`.
 
-![marshaValue方法](./Java安全学习-RMI学习/38.png)
+![marshaValue方法](./images/38.png)
 
 跟进`StreamRemoteCall#executeCall`, 接着会调用`releaseOutputStream`方法, 在`this.out.flush`时, 会把之前写进去的数据发出去, 服务端会返回执行结果.
 
-![StreamRemoteCall#executeCall方法](./Java安全学习-RMI学习/39.png)
+![StreamRemoteCall#executeCall方法](./images/39.png)
 
-![releaseOutputStream方法](./Java安全学习-RMI学习/40.png)
+![releaseOutputStream方法](./images/40.png)
 
-![wireshark数据](./Java安全学习-RMI学习/41.png)
+![wireshark数据](./images/41.png)
 
 在调用完`StreamRemoteCall#executeCall`后, 会调用`unmarsharValue`方法把数据取出来.
 
-![取数据](./Java安全学习-RMI学习/42.png)
+![取数据](./images/42.png)
 
-![unmarsharValue方法](./Java安全学习-RMI学习/43.png)
+![unmarsharValue方法](./images/43.png)
 
 当`Client`在与`Server`通信时, `Server`实际处理请求的位置在`UnicastServerRef#dispatch`, 这里会调用`unmarshaValue`方法, 对请求传来的参数进行处理, 这里会判断参数的数据类型, 如果是`Object`的话, 则会反序列化. 因此如果能够找到`Server`注册的远程对象中某个方法传递的参数类型是`Object`, 在服务端这里会被反序列化, 此时即可实现`RCE`(前提是具有`gadget`), 最后通过调用`invoke`来调用远程对象的方法.
 
-![UnicastServerRef#dispatch方法](./Java安全学习-RMI学习/44.png)
+![UnicastServerRef#dispatch方法](./images/44.png)
 
-![unmarsharValue方法](./Java安全学习-RMI学习/43.png)
+![unmarsharValue方法](./images/43.png)
 
 ## 总结
 用一张图来说明进行一个完整的服务注册、发现、调用流程, 都经历了哪些步骤.
 
-![流程图](./Java安全学习-RMI学习/45.png)
+![流程图](./images/45.png)
 
 `RMI`底层通讯采用了`Stub`(运行在客户端)和`Skeleton`(运行在服务端)机制, `RMI`调用远程方法的大致如下:
  - `RMI`客户端在调用远程方法时会先创建`Stub`(sun.rmi.registry.RegistryImpl_Stub)
@@ -428,7 +428,7 @@ public class RMIClientAttackDemo1 {
 }
 ```
 
-![Demo1结果](./Java安全学习-RMI学习/46.png)
+![Demo1结果](./images/46.png)
 
 ### unbind & lookup
 `unbind`会调用`readObject`来读取传递过来的参数, 所以是可以利用的.
@@ -548,7 +548,7 @@ public class RMIClientAttackDemo2 {
 }
 ```
 
-![Demo2结果](./Java安全学习-RMI学习/47.png)
+![Demo2结果](./images/47.png)
 
 ## 攻击客户端
 ### 注册中心攻击客户端
