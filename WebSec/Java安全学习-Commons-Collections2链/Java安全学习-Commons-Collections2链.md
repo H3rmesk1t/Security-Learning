@@ -1,3 +1,7 @@
+# Java安全学习-Commons-Collections2链
+
+Author: H3rmesk1t
+
 # 环境搭建
 > 1. `JDK`版本：JDK1.8u66
 > 2. `Commons-Collections4`版本：4.0
@@ -36,17 +40,17 @@
 ## PriorityQueue
 > `PriorityQueue`优先级队列是基于优先级堆的一种特殊队列，它给每个元素定义“优先级”，这样取出数据的时候会按照优先级来取，默认情况下，优先级队列会根据自然顺序对元素进行排序；因此放入`PriorityQueue`的元素必须实现`Comparable`接口，`PriorityQueue`会根据元素的排序顺序决定出队的优先级，如果没有实现`Comparable`接口，`PriorityQueue`还允许提供一个`Comparator`对象来判断两个元素的顺序，`PriorityQueue`支持反序列化，在重写的`readObject`方法中将数据反序列化到`queue`中之后，会调用`heapify()`方法来对数据进行排序
 
-<img src="./Java安全学习-Commons-Collections2链/1.png" alt="">
+<img src="./images/1.png" alt="">
 
 > 在`heapify()`方法中又会调用`siftDown()`方法，在`comparator != null`下会调用`siftDownUsingComparator()`方法，在`siftDownUsingComparator()`方法中会调用`comparator`的`compare()`方法来进行优先级的比较和排序
 
-<img src="./Java安全学习-Commons-Collections2链/2.png" alt="">
+<img src="./images/2.png" alt="">
 
 ## TransformingComparator
 > `TransformingComparator`类似`TransformedMap`，用`Tranformer`来装饰一个`Comparator`，待比较的值将先使用`Tranformer`转换，再传递给`Comparator`比较，`TransformingComparator`初始化时配置`Transformer`和`Comparator`，如果不指定`Comparator`则使用`ComparableComparator.<Comparable>comparableComparator()`
 > 在调用`TransformingComparator`的`compare`方法时，调用了`this.transformer.transform()`方法对要比较的两个值进行转换，然后再调用`compare`方法比较
 
-<img src="./Java安全学习-Commons-Collections2链/3.png" alt="">
+<img src="./images/3.png" alt="">
 
 > 在`PriorrityQueue`中最后会通过`comparator`的`compare()`方法来进行优先级的比较和排序，这里可以通过调用`TransformingComparator`中的`transform()`方法来和之前连接起来
 
@@ -186,7 +190,7 @@ public class CommonsCollectionsGadget1 {
 }
 ```
 
-<img src="./Java安全学习-Commons-Collections2链/4.png" alt="">
+<img src="./images/4.png" alt="">
 
 ## POC-2
 > 为了更好的符合实战利用中的要求，利用`InvokerTransformer`触发`TemplatesImpl`的`newTransformer`，从而读取恶意字节码从而进行执行命令，并且利用`javassist`和`TemplatesImpl`来进行构造
@@ -284,7 +288,7 @@ public class CommonsCollectionsGadget2 {
 }
 ```
 
-<img src="./Java安全学习-Commons-Collections2链/5.png" alt="">
+<img src="./images/5.png" alt="">
 
 # 调用链
 ```java
