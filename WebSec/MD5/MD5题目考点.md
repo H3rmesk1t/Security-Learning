@@ -1,3 +1,7 @@
+# MD5
+
+Author: H3rmesk1t
+
 # 绕过md5()来构造攻击语句
 > 利用值：ffifdyop
 ```sql
@@ -7,7 +11,7 @@ select * from 'admin' where password = md5($pass,true)
 
 # 数字与字符串之间的比较
 
-<img src="./md5和twig/11.png" alt="">
+<img src="./images/11.png" alt="">
 
 > 上图中执行语句第一个返回的是 true ，第二个返回的是 false，因为 php 把字母开头的转化为整型时会转化为 0，前面数字后面字母的话就只取到第一个字母出现的位置之前 (如：intval('123abd45gf') 结果为 123)
 
