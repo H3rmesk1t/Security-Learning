@@ -1,5 +1,9 @@
+# FTP 与 php-fpm
+
+Author: H3rmesk1t
+
 # FTP的两种传输模式
-<img src="./FTP与php-fpm/1.png" alt="">
+<img src="./images/1.png" alt="">
 
 > 先了解一下 FTP 的两种传输模式：主动模式(PORT模式)、被动模式(PASV模式)
 
@@ -14,7 +18,7 @@
 
 > 当 FTP 客户端在私网而服务器在公网时(云主机应用场景)，应该使用 FTP 被动模式，因为这种应用场景 FTP 服务器访问不到在私网的 FTP 客户端，而 FTP 客户端是可以访问到 FTP 服务器的
 
-<img src="./FTP与php-fpm/2.png" alt="">
+<img src="./images/2.png" alt="">
 
 # Fastcgi
 ## Fastcgi Record
@@ -49,7 +53,7 @@ typedef struct {
 ## Fastcgi Type
 > type 就是指定该 record 的作用，因为 fastcgi 一个 record 的大小是有限的，作用也是单一的，所以需要在一个 TCP 流里传输多个 record，通过 type 来标志每个 record 的作用，用 requestId 作为同一次请求的 id，也就是说每次请求会有多个 record，它们的 requestId 是相同的
 
-<img src="./FTP与php-fpm/3.png" alt="">
+<img src="./images/3.png" alt="">
 
 > 看了这个表格就很清楚了，服务器中间件和后端语言通信，第一个数据包就是 type 为 1 的 record，后续互相交流，发送 type 为 4、5、6、7 的 record，结束时发送 type 为 2、3 的 record，当后端语言接收到一个 type 为 4 的 record 后，就会把这个 record 的 body 按照对应的结构解析成 key-value，环境变量的结构如下
 
@@ -137,7 +141,7 @@ key、value均大于128字节，用FCGI_NameValuePair44
 # 攻击方式
 > 先用 `Gopherus` 构造 Payload，取出 payload 中 _ 后面的字符
 
-<img src="./FTP与php-fpm/4.png" alt="">
+<img src="./images/4.png" alt="">
 
 > 接着打 ftp 被动
 
