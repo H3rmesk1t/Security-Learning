@@ -1,3 +1,7 @@
+# Java安全学习-Commons-Collections6链
+
+Author: H3rmesk1t
+
 # 环境搭建
 > 1. `JDK`版本：JDK1.8u66(暂无限制)
 > 2. `Commons-Collections`版本：3.1
@@ -30,16 +34,16 @@
 ## HashSet
 > `HashSet`是一个无序的、不允许有重复元素的集合，本质上就是由`HashMap`实现的，跟`HashMap`一样，都是一个存放链表的数组，`HashSet`中的元素都存放在`HashMap`的`key`上面，而`value`中的值都是统一的一个`private static final Object PRESENT = new Object();`，在`HashSet`的`readObject`方法中会调用其内部`HashMap`的`put`方法，将值放在`key`上
 
-<img src="./Java安全学习-Commons-Collections4567/17.png" alt="">
+<img src="./images/17.png" alt="">
 
 # CommonsCollections6 分析
 > 在`CommonsCollections5`中，通过对`TiedMapEntry#toString`方法的调用，触发了`TiedMapEntry#getValue`，继而触发了`LazyMap#get`来完成后半段的调用；而在`CommonsCollections6`中则是通过`TiedMapEntry#hashCode`触发对`TiedMapEntry#getValue`的调用，但是需要找到一个触发`hashcode()`方法的点，因此利用前置知识中的`HashSet()`方法来触发`hashCode()`方法
 
 > 在`HashSet#readObject`方法中，跟进`put()`方法，进入`java.util.HashMap`中调用`put()`方法，接着调用`hash()`方法，进而调用`key.hashCode()`，这里只需要让`key`为`TiedMapEntry`对象即可
 
-<img src="./Java安全学习-Commons-Collections4567/18.png" alt="">
+<img src="./images/18.png" alt="">
 
-<img src="./Java安全学习-Commons-Collections4567/19.png" alt="">
+<img src="./images/19.png" alt="">
 
 > 但是在实际利用是需要解决一个问题，那就是在调用`put`方法的时候就触发命令执行的问题，P牛对此的解决方法是`outerMap.remove("h3rmesk1t");`，成功在反序列化的时候也触发了命令执行
 
@@ -104,9 +108,9 @@ public class FakeDemo {
 }
 ```
 
-<img src="./Java安全学习-Commons-Collections4567/20.png" alt="">
+<img src="./images/20.png" alt="">
 
-<img src="./Java安全学习-Commons-Collections4567/21.png" alt="">
+<img src="./images/21.png" alt="">
 
 ## POC
 > 为了解决上述出现的问题，在构造`LazyMap`的时候先构造一个`fakeTransformers`对象，等最后⽣成`Payload`的时候，再利用反射将真正的`transformers`替换进去
@@ -181,7 +185,7 @@ public class CommonsCollections6Gadget1 {
 }
 ```
 
-<img src="./Java安全学习-Commons-Collections4567/22.png" alt="">
+<img src="./images/22.png" alt="">
 
 # 调用链
 
