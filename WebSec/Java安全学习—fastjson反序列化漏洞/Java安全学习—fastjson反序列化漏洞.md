@@ -1,4 +1,5 @@
-# Java安全学习—fastjson
+# Java安全学习—fastjson反序列化漏洞
+
 Author: H3rmesk1t
 
 Data: 2022.02.07
@@ -36,7 +37,7 @@ Fastjson < 1.2.68
 
 这里来看看早期版本的`fastjson`的框架图.
 
-![fastjson框架图](./Java安全学习—fastjson/1.png)
+![fastjson框架图](./images/1.png)
 
 主要的功能点有:
  - 使用`JSON.parse(jsonString)`和`JSON.parseObject(jsonString, Target.class)`, 两者调用链一致, 前者会在`jsonString`中解析字符串获取`@type`指定的类, 后者则会直接使用参数中的`class`.
@@ -125,7 +126,7 @@ public class SerialDemo {
 
  - 运行结果
 
-![SerialResult](./Java安全学习—fastjson/2.png)
+![SerialResult](./images/2.png)
 
 注意到, 在上面的代码中存在一个关键词`SerializerFeature.WriteClassName`, 其是`toJSONString`设置的一个属性值, 设置之后在序列化的时候会多写入一个`@type`, 即写上被序列化的类名, `type`可以指定反序列化的类, 并且调用其`getter`/`setter`/`is`方法.
 
@@ -174,9 +175,9 @@ public class UnSerialDemo {
 
  - 运行结果
 
-![UnSerialResultWithType](./Java安全学习—fastjson/3.png)
+![UnSerialResultWithType](./images/3.png)
 
-![UnSerialResultWithoutType](./Java安全学习—fastjson/4.png)
+![UnSerialResultWithoutType](./images/4.png)
 
 从运行结果中可以看到, 第一和第二种方法没能成功反序列化, 这是因为没法确定其到底属于那个对象, 所以只能将其转换为一个普通的`JSON`对象从而无法正确转换, 而第三种方法成功反序列化是因为其指明了对象. 在引入了`@type`后, 成功反序列化, 可以看到`parse`成功触发了`set`方法, `parseObject`同时触发了`set`和`get`方法, 因为`fastjson`存在`autoType`机制, 当用户指定`@type`时, 存在调用恶意`setter`/`getter`的情况, 这就是`fastjson`反序列化漏洞.
 
@@ -241,50 +242,50 @@ public class UnExploit {
 }
 ```
 
-![exploit](./Java安全学习—fastjson/5.png)
+![exploit](./images/5.png)
 
 ### 反序列化漏洞流程分析
 在`parseObject`处打上断点, 跟进`Feature#parseObject`方法, 在第一行中会调用`Feature#parse`方法.
 
-![Feature#parseObject](./Java安全学习—fastjson/6.png)
+![Feature#parseObject](./images/6.png)
 
 跟进`Feature#parse`方法, 继续跟进`parse`, 这里会创建一个`DefaultJSONParser`对象, 在这个过程中会有一个判断操作, 来判断解析的字符串是`{`还是`[`, 并根据判断的结果设置`token`值, 创建完成`DefaultJSONParser`对象后进入`DefaultJSONParser#parse`方法.
 
-![Feature#parse](./Java安全学习—fastjson/7.png)
+![Feature#parse](./images/7.png)
 
-![parse](./Java安全学习—fastjson/8.png)
+![parse](./images/8.png)
 
-![DefaultJSONParser](./Java安全学习—fastjson/9.png)
+![DefaultJSONParser](./images/9.png)
 
 跟进`DefaultJSONParser#parse`方法, 在该过程中会获取到之前设置的`token`值, 并根据`token`值进行相对应的操作, 该判断过程会创建一个空的`JSONObject`, 随后会通过`parseObject`方法进行解析.
 
-![tokenget](./Java安全学习—fastjson/10.png)
+![tokenget](./images/10.png)
 
-![switch](./Java安全学习—fastjson/11.png)
+![switch](./images/11.png)
 
 跟进`parseObject`方法, 这里会通过`scanSymbol`获取到`@type`指定类, 然后通过`TypeUtils.loadClass`方法加载`Class`.
 
-![parseObjectOfscanSymbol](./Java安全学习—fastjson/12.png)
+![parseObjectOfscanSymbol](./images/12.png)
 
-![parseObjectOfloadClass](./Java安全学习—fastjson/13.png)
+![parseObjectOfloadClass](./images/13.png)
 
 跟进`TypeUtils.loadClass`方法, 这里首先会从`mappings`里面寻找类, `mappings`中存放着一些`Java`内置类, 由于前面一些条件不满足, 所以最后用`ClassLoader`加载类, 在这里也就是加载`Exploit`类.
 
-![TypeUtils.loadClass](./Java安全学习—fastjson/14.png)
+![TypeUtils.loadClass](./images/14.png)
 
 返回`clazz`值后回到上一级, 创建`ObjectDeserializer`对象, 并调用`getDeserializer`方法.
 
-![ObjectDeserializer](./Java安全学习—fastjson/15.png)
+![ObjectDeserializer](./images/15.png)
 
 跟进`ParserConfig#getDeserializer`方法, 继续调用`getDeserializer`方法, 这里使用了黑名单限制可以反序列化的类, 但是黑名单里面只有`java.lang.Thread`.
 
-![ParserConfig#getDeserializer](./Java安全学习—fastjson/16.png)
+![ParserConfig#getDeserializer](./images/16.png)
 
-![getDeserializer](./Java安全学习—fastjson/17.png)
+![getDeserializer](./images/17.png)
 
 接着回到前面的`deserialze`方法, 往下调试到达`ASM`机制生成的临时代码, 最后调用`set`和`get`里面的方法.
 
-![deserialze](./Java安全学习—fastjson/18.png)
+![deserialze](./images/18.png)
 
 ## Fastjson 1.2.24
 这个版本的`Fastjson`有两条利用链:
@@ -298,25 +299,25 @@ public class UnExploit {
 
 注意到该类中存在一个成员属性`_class`, 其是一个`Class`类型的数组, 数组里下标为`_transletIndex`的类会在`getTransletInstance`方法中使用`newInstance`实例化.
 
-![getTransletInstance](./Java安全学习—fastjson/19.png)
+![getTransletInstance](./images/19.png)
 
 跟进`getTransletInstance`的调用, 发现`newTransformer`会调用`getTransletInstance`方法, 而类中的`getOutputProperties`方法又会调用`newTransformer`方法.
 
-![newTransformer](./Java安全学习—fastjson/20.png)
+![newTransformer](./images/20.png)
 
-![getOutputProperties](./Java安全学习—fastjson/21.png)
+![getOutputProperties](./images/21.png)
 
 而`getOutputProperties`方法就是类成员变量`_outputProperties`的`getter`方法.
 
-![_outputProperties](./Java安全学习—fastjson/22.png)
+![_outputProperties](./images/22.png)
 
 既然这里可以构成一条调用链, 回到最开始的`_class`, 看看其中的类是否可控, 发现在构造方法、`readObject`方法以及`defineTransletClasses`方法中有赋值的动作.
 
-![_class](./Java安全学习—fastjson/23.png)
+![_class](./images/23.png)
 
 而在`getTransletInstance`方法中当`_class==null`时, 则会调用`defineTransletClasses`方法, 跟进该方法来看看代码的逻辑. 首先要求`_bytecodes`不为空, 接着就会调用自定义的`ClassLoader`去加载`_bytecodes`中的`byte[]`, 而`_bytecodes`也是该类的成员属性. 如果这个类的父类为`ABSTRACT_TRANSLET`, 也就是`com.sun.org.apache.xalan.internal.xsltc.runtime.AbstractTranslet`, 就会将类成员属性的`_transletIndex`设置为当前循环中的标记位, 如果是第一次调用, 就是`_class[0]`; 如果父类不是这个类, 将会抛出异常.
 
-![defineTransletClasses](./Java安全学习—fastjson/24.png)
+![defineTransletClasses](./images/24.png)
 
 #### 调用链
 
@@ -396,7 +397,7 @@ public class POC {
 }
 ```
 
-![result1](./Java安全学习—fastjson/25.png)
+![result1](./images/25.png)
 
  - Payload
 
@@ -410,11 +411,11 @@ public class POC {
 
 由于`fastjson`的触发点是利用`set`/`get`方法, 因此在`JdbcRowSetImpl`中寻找可利用的方法, 跟进`setAutoCommit`方法, 在`this.conn`为空时, 会调用`this.connect`方法.
 
-![setAutoCommit](./Java安全学习—fastjson/26.png)
+![setAutoCommit](./images/26.png)
 
 跟进`connect`方法, 调用了`javax.naming.InitialContext#lookup`方法, 参数从成员变量`dataSource`中获取.
 
-![connect](./Java安全学习—fastjson/27.png)
+![connect](./images/27.png)
 
 #### 调用链
 
@@ -454,7 +455,7 @@ public class POC2 {
 }
 ```
 
-![result2](./Java安全学习—fastjson/28.png)
+![result2](./images/28.png)
 
 ```java
 {
@@ -472,7 +473,7 @@ public class POC2 {
  - `denyList`: 反序列化类的黑名单.
  - `acceptList`: 是反序列化白名单.
 
-![ParserConfig](./Java安全学习—fastjson/29.png)
+![ParserConfig](./images/29.png)
 
 黑名单`denyList`包括:
 
@@ -510,15 +511,15 @@ org.springframework
 
 跟进`ParserConfig#checkAutoType`, 可以看到, 如果开启了`autoType`, 则会先判断类名是否在白名单中, 如果在, 就使用`TypeUtils.loadClass`加载; 不然的话则会使用黑名单判断类名的开头, 如果匹配就抛出异常.
 
-![ParserConfig#checkAutoType1](./Java安全学习—fastjson/30.png)
+![ParserConfig#checkAutoType1](./images/30.png)
 
 如果未开启`autoType`, 则会先使用黑名单匹配, 再使用白名单匹配和加载. 最后如果要反序列化的类和黑白名单都未匹配时, 只有开启了`autoType`或者`expectClass`不为空, 也就是指定了`Class`对象时才会调用`TypeUtils.loadClass`加载.
 
-![ParserConfig#checkAutoType2](./Java安全学习—fastjson/31.png)
+![ParserConfig#checkAutoType2](./images/31.png)
 
 接着跟进`TypeUtils.loadClass`方法, 此方法中出现了逻辑漏洞, 这个类在加载目标类之前为了兼容带有描述符的类名, 使用了递归调用来处理描述符中的`[`、`L`、`;`字符, 而攻击者可以使用带有描述符的类绕过黑名单的限制, 并且在类加载过程中, 描述符还会被处理掉. 
 
-![](./Java安全学习—fastjson/32.png)
+![](./images/32.png)
 
 因此, 漏洞利用的思路为: 需要开启`autoType`, 使用`[`、`L`、`;`字符来进行黑名单的绕过.
 
@@ -539,7 +540,7 @@ org.springframework
 
 `com.alibaba.fastjson.parser.ParserConfig`将原本的明文黑名单转为使用了`Hash`黑名单. 并且在`checkAutoType`中加入判断, 如果类的第一个字符是`L`结尾是`;`, 则使用`substring`进行了去除. 但是, 在最后处理时是递归处理, 因此只要对描述符进行双写即可绕过.
 
-![denyHashCodes](./Java安全学习—fastjson/33.png)
+![denyHashCodes](./images/33.png)
 
 ### Payload
 
@@ -671,7 +672,7 @@ if (clazz != null) {
  - initDeserializers: 无入参, 在构造方法中调用, 写死一些认为没有危害的固定常用类, 无法利用.
  - putDeserializer: 被前两个函数调用, 无法控制入参, 无法利用.
 
-![deserializers](./Java安全学习—fastjson/34.png)
+![deserializers](./images/34.png)
 
 接着看看`TypeUtils.mappings`, 这是一个`ConcurrentHashMap`对象, 能向其中赋值的函数有:
  - addBaseClassMappings: 无入参, 加载.
@@ -718,45 +719,45 @@ try{
 
 `loadClass`一共有三个重载方法, 这里重点看一下两个参数的`loadClass`方法在哪调用.
 
-![loadClass](./Java安全学习—fastjson/35.png)
+![loadClass](./images/35.png)
 
-![调用](./Java安全学习—fastjson/36.png)
+![调用](./images/36.png)
 
 跟进`com.alibaba.fastjson.serializer.MiscCodec#deserialze`方法, 这个类是用来处理一些乱七八糟类的反序列化类, 其中就包括`Class.class`类, 如果`parser.resolveStatus`为`2`时, 进入`if`语句, 会解析`val`中的内容放入`objVal`中, 然后传入`strVal`中.
 
-![](./Java安全学习—fastjson/37.png)
+![](./images/37.png)
 
-![](./Java安全学习—fastjson/38.png)
+![](./images/38.png)
 
 后面的逻辑如果`class`是`Class.class`时, 将会调用`loadClass`方法, 将`strVal`进行类加载并缓存, 这就完成了恶意类的加载.
 
-![](./Java安全学习—fastjson/39.png)
+![](./images/39.png)
 
 根据上面的思路, 调试一下`{"@type":"java.lang.Class","val":"aaaaa"}`, `JSON.parseObject`先调用`DefaultJSONParser`对`JSON`进行解析.
 
-![](./Java安全学习—fastjson/40.png)
+![](./images/40.png)
 
 `DefaultJSONParser.parseObject`调用`checkAutoType`检查待加载类的合法性.
 
-![](./Java安全学习—fastjson/41.png)
+![](./images/41.png)
 
 由于`deserializers`在初始化时将`Class.class`进行了加载, 因此使用`findClass`可以找到, 越过了后面`AutoTypeSupport`的检查.
 
-![](./Java安全学习—fastjson/42.png)
+![](./images/42.png)
 
 `DefaultJSONParser.parseObject`设置`resolveStatus`为`2`.
 
-![](./Java安全学习—fastjson/43.png)
+![](./images/43.png)
 
 `DefaultJSONParser.parseObject`根据不同的`class`类型分配`deserialzer`, `Class`类型由`MiscCodec.deserialze`处理.
 
-![](./Java安全学习—fastjson/44.png)
+![](./images/44.png)
 
 接着传递至`strVal`并使用`loadClass`加载并缓存.
 
-![](./Java安全学习—fastjson/45.png)
+![](./images/45.png)
 
-![](./Java安全学习—fastjson/46.png)
+![](./images/46.png)
 
 此时恶意的`val`成功被加载到`mappings`中, 再次以恶意类进行`@type`请求时即可绕过黑名单进行的阻拦.
 
@@ -783,11 +784,11 @@ try{
 
 版本`Fastjson 1.2.47`更新了一个新的安全控制点`safeMode`, 如果应用程序开启了`safeMode`, 将在`checkAutoType`中直接抛出异常, 利用这个方式也就是完全禁止`autoType`.
 
-![](./Java安全学习—fastjson/47.png)
+![](./images/47.png)
 
 但是在该版本中出现了新的绕过方式: 利用`expectClass`绕过`checkAutoType`. 在`checkAutoType`函数中有这样的逻辑: 如果函数有`expectClass`入参, 且传入的类名是`expectClass`的子类或实现并且不在黑名单中, 就可以通过`checkAutoType`的安全检测.
 
-![](./Java安全学习—fastjson/48.png)
+![](./images/48.png)
 
 根据上面的思路, 寻找一下`checkAutoType`的几个重载方法中是否有可控的`expectClass`的入参方式, 最终找到了以下几个类:
  - ThrowableDeserializer#deserialze
@@ -795,11 +796,11 @@ try{
 
 跟进`ThrowableDeserializer#deserialze`方法, 该方法直接将`@type`后的类传入`checkAutoType`, 并且`expectClass`为`Throwable.class`.
 
-![](./Java安全学习—fastjson/49.png)
+![](./images/49.png)
 
 通过`checkAutoType`之后, 将使用`createException`来创建异常类的实例. 这就形成了`Throwable`子类绕过`checkAutoType`的方式. 我们需要找到`Throwable`的子类, 这个类的`getter`/`setter`/`static block`/`constructor`中含有具有威胁的代码逻辑. 与`Throwable`类似地, 还有`AutoCloseable`(在白名单中).
 
-![](./Java安全学习—fastjson/50.png)
+![](./images/50.png)
 
 ## Payload 集合
 
