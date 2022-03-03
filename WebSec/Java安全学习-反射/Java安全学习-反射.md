@@ -1,3 +1,7 @@
+# Java安全学习-反射
+
+Author: H3rmesk1t
+
 # 前言
 > 在之前粗略的了解了一下 Java 的反射机制，这里进一步总结一下 Java 安全中反射的知识点
 
@@ -151,7 +155,7 @@ Object runtime = getRuntimeMethod.invoke(demo);
 execMethod.invoke(runtime, "calc.exe");
 ```
 
-<img src="./反射和Yii/1.png" alt="">
+<img src="./images/1.png" alt="">
 
 # 无构造方法与无单例模式静态方法来反射实例化该类
 > 这里需要引入新的反射方法 `getConstructor`，与 `getMethod` 类似，该方法接收的参数是构造函数列表类型，由于构造函数也支持重载，因此必须用参数列表类型才能唯一确定一个构造函数，获取到构造类之后使用 newInstance 来执行
