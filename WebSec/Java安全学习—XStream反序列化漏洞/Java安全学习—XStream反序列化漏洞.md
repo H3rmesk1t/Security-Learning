@@ -93,7 +93,7 @@ Hello, h3rmesk1t
 # XStream 反序列化漏洞
 截止到目前`XStream`官网上给出的[漏洞集合](https://x-stream.github.io/security.html#:~:text=%E6%A3%80%E6%9F%A5%E6%9D%A5%E5%A4%84%E7%90%86%E3%80%82-,%E8%AE%B0%E5%BD%95%E7%9A%84%E6%BC%8F%E6%B4%9E,-%E5%A4%9A%E5%B9%B4%E6%9D%A5%EF%BC%8CMitre)
 
-<div align=center><img src="./Java安全学习—XStream反序列化漏洞/7.png"></div>
+<div align=center><img src="./images/7.png"></div>
 
 ## 前置知识
 ### Converter 转换器
@@ -107,16 +107,16 @@ Hello, h3rmesk1t
 #### MapConverter
 `MapConverter`是针对`Map`类型还原的`Converter`, 跟进`MapConverter#unmarshal`, 依次调用`unmarshal`, `populateMap`, `putCurrentEntryIntoMap`, 最后进入到`target.put(key, value);`中, 调用`Map`的`put`函数, 后续就是对`key`调用`hashCode`函数.
 
-<div align=center><img src="./Java安全学习—XStream反序列化漏洞/1.png"></div>
+<div align=center><img src="./images/1.png"></div>
 
 #### TreeSet/TreeMapConverter
 `TreeSetConverter`和`TreeMapConverter`的区别并不大, `TreeSet`本身就是一个只用上了`Key`的`TreeMap`, `TreeSetConverter`的反序列化处理也是先转化为`TreeMapConverter`的方式来优先还原`TreeSet`里的`TreeMap`, 再填充到`TreeSet`里.
 
 这里从`TreeSetConverter`的调用来看看整个的调用过程. 先从`TreeSet`中提取出`TreeMap`, 接着进一步调用`TreeMapConverter`来还原`TreeMap`. 在`TreeMapConverter`中利用`sortedMap`来填充需要还原的`Entry`, 这里会回到上文提到的`MapConverter`类中的`populateMap`和`putCurrentEntryIntoMap`方法, 最后调用`TreeMap.putAll`方法, 调用到`java.util.AbstractMap#putAll`方法.
 
-<div align=center><img src="./Java安全学习—XStream反序列化漏洞/2.png"></div>
+<div align=center><img src="./images/2.png"></div>
 
-<div align=center><img src="./Java安全学习—XStream反序列化漏洞/3.png"></div>
+<div align=center><img src="./images/3.png"></div>
 
 #### DynamicProxyConverter
 `DynamicProxyConverter`即动态代理转换器, 是`XStream`支持的一种转换器, 其存在使得`XStream`能够把`XML`内容反序列化转换为动态代理类对象. 这里可以参考[XStream 官网]()给出的`POC`:
@@ -142,7 +142,7 @@ Hello, h3rmesk1t
 
 `EventHandler`类是一个实现了`InvocationHandler`的类, `EventHandler`类定义的代码如下: 其含有`target`和`action`属性, 在`EventHandler.invoke`->`EventHandler.invokeInternal`->`MethodUtil.invoke`的函数调用链中, 会将前面两个属性作为类方法和参数继续反射调用.
 
-<div align=center><img src="./Java安全学习—XStream反序列化漏洞/4.png"></div>
+<div align=center><img src="./images/4.png"></div>
 
 ## 基本原理
 `XStream`是自己实现的一套序列化和反序列化机制, 核心是通过`Converter`转换器来将`XML`和对象之间进行相互的转换, 这与原生的`Java`序列化和反序列化机制有所区别. 
@@ -230,7 +230,7 @@ Hello, h3rmesk1t
 </contact>
 ```
 
-<div align=center><img src="./Java安全学习—XStream反序列化漏洞/5.png"></div>
+<div align=center><img src="./images/5.png"></div>
 
 #### 过程分析
 参考[Java XStream反序列化漏洞](https://www.mi1k7ea.com/2019/10/21/XStream%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E/#:~:text=%E4%B8%8B%E9%9D%A2%E6%88%91%E4%BB%AC%E5%9C%A8xstream.fromXML()%E8%AF%AD%E5%8F%A5%E4%B8%AD%E6%89%93%E4%B8%8A%E6%96%AD%E7%82%B9%E8%BF%9B%E8%A1%8C%E8%B0%83%E8%AF%95%EF%BC%8C%E5%90%8C%E6%97%B6%E5%9C%A8EventHandler%E7%B1%BB%E4%B8%AD%E7%9A%84invoke()%E5%92%8CinvokeInternal()%E5%87%BD%E6%95%B0%E4%B8%8A%E4%B9%9F%E6%89%93%E4%B8%8A%E6%96%AD%E7%82%B9%E3%80%82)中的调试过程.
@@ -303,7 +303,7 @@ Hello, h3rmesk1t
 </map>
 ```
 
-<div align=center><img src="./Java安全学习—XStream反序列化漏洞/6.png"></div>
+<div align=center><img src="./images/6.png"></div>
 
 #### 过程分析
 参考[XStream反序列化CVE-2020-26217漏洞分析](https://www.anquanke.com/post/id/222830#:~:text=%C2%A0-,%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90,-%E7%94%B1%E4%BA%8E%E8%AF%A5%E6%BC%8F%E6%B4%9E)中的调试过程.
