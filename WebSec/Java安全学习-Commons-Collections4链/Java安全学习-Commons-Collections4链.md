@@ -1,3 +1,7 @@
+# Java安全学习-Commons-Collections4链
+
+Author: H3rmesk1t
+
 # 环境搭建
 > 1. `JDK`版本：JDK1.8u66(暂无版本限制)
 > 2. `Commons-Collections4`版本：4.0
@@ -32,31 +36,31 @@
 
 > `Bag`接口继承自`Collection`接口，定义了一个集合，该集合会记录对象在集合中出现的次数，它有一个子接口`SortedBag`，定义了一种可以对其唯一不重复成员排序的`Bag`类型
 
-<img src="./Java安全学习-Commons-Collections4567/1.png" alt="">
+<img src="./images/1.png" alt="">
 
-<img src="./Java安全学习-Commons-Collections4567/2.png" alt="">
+<img src="./images/2.png" alt="">
 
 > `TreeBag`是对`SortedBag`的一个标准实现，`TreeBag`使用`TreeMap`来储存数据，并使用指定`Comparator`来进行排序，`TreeBag`继承自`AbstractMapBag`实现了`SortedBag`接口，初始化`TreeBag`时会创建一个新的`TreeMap`储存在成员变量`map`里，而排序使用的`Comparator`则直接储存在`TreeMap`中
 
-<img src="./Java安全学习-Commons-Collections4567/3.png" alt="">
+<img src="./images/3.png" alt="">
 
-<img src="./Java安全学习-Commons-Collections4567/4.png" alt="">
+<img src="./images/4.png" alt="">
 
 > 在对`TreeBag`反序列化时，会将反序列化出来的`Comparator`对象交给`TreeMap`实例化，并调用父类的`doReadObject`方法进行处理
 
-<img src="./Java安全学习-Commons-Collections4567/5.png" alt="">
+<img src="./images/5.png" alt="">
 
 > 在`doReadObject`方法中会向`TreeMap`中`put`数据
 
-<img src="./Java安全学习-Commons-Collections4567/6.png" alt="">
+<img src="./images/6.png" alt="">
 
 > 对于这种有序的储存数据的集合，反序列化数据时一定会对其进行排序动作，而`TreeBag`则是依赖了`TreeMap`在`put`数据时会调用`compare`进行排序的特点来实现数据顺序的保存
 
-<img src="./Java安全学习-Commons-Collections4567/7.png" alt="">
+<img src="./images/7.png" alt="">
 
 > 而在`compare`方法中调用了`comparator`进行比较，以使用`TransformingComparator`触发后续的逻辑
 
-<img src="./Java安全学习-Commons-Collections4567/8.png" alt="">
+<img src="./images/8.png" alt="">
 
 # Commons-Collections4 分析
 ## POC-1
@@ -150,7 +154,7 @@ public class CommmonsCollections4PriorityQueue {
     }
 }
 ```
-<img src="./Java安全学习-Commons-Collections4567/9.png" alt="">
+<img src="./images/9.png" alt="">
 
 ## POC-2
 > 相较于`POC-1`，这里使用`TreeBag`和`TreeMap`来替代`PriorityQueue`进行构造
@@ -241,7 +245,7 @@ public class CommonsCollectionsTreeBag {
     }
 }
 ```
-<img src="./Java安全学习-Commons-Collections4567/10.png" alt="">
+<img src="./images/10.png" alt="">
 
 # 调用链
 > PriorityQueue
