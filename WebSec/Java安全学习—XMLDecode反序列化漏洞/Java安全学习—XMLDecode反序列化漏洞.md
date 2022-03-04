@@ -172,7 +172,7 @@ h3rmesk1t
  - endElement
  - characters
 
-这里借用[Y4er 师傅文章](https://y4er.com/post/java-xmldecoder/#:~:text=%E8%87%AA%E5%B7%B1%E5%AE%9E%E7%8E%B0%E4%B8%80%E4%B8%AA%E5%9F%BA%E4%BA%8ESAX%E7%9A%84%E8%A7%A3%E6%9E%90%E5%8F%AF%E4%BB%A5%E5%B8%AE%E6%88%91%E4%BB%AC%E6%9B%B4%E5%A5%BD%E7%9A%84%E7%90%86%E8%A7%A3XMLDecoder)中自己实现的基于`SAX`解析来理解`XMLDecode`.
+这里借用[Y4er 师傅的 Java XMLDecoder 反序列化分析](https://y4er.com/post/java-xmldecoder/#:~:text=%E8%87%AA%E5%B7%B1%E5%AE%9E%E7%8E%B0%E4%B8%80%E4%B8%AA%E5%9F%BA%E4%BA%8ESAX%E7%9A%84%E8%A7%A3%E6%9E%90%E5%8F%AF%E4%BB%A5%E5%B8%AE%E6%88%91%E4%BB%AC%E6%9B%B4%E5%A5%BD%E7%9A%84%E7%90%86%E8%A7%A3XMLDecoder)中自己实现的基于`SAX`解析来理解`XMLDecode`.
 
 ```java
 package org.h3rmesk1t.XMLDecode;
@@ -240,7 +240,7 @@ public class DemoHandler extends DefaultHandler {
 }
 ```
 
-输出调用的结果为:
+输出调用的结果如下, 可以看到通过继承`SAX`的`DefaultHandler`类, 重写其事件方法, 就能拿到`XML`对应的节点、属性和值. `XMLDecoder`也是基于`SAX`实现的`XML`解析, 不过它拿到节点、属性、值之后通过`Expression`创建对象及调用方法.
 
 ```xml
 startDocument()
@@ -305,6 +305,69 @@ endElement()
 java
 endDocument()
 ```
+
+### 过程调用
+将断点下在`XMLDecoder.readObject`处, 跟进`readObejct`方法, 继续跟进判断语句中的`parsingComplete`方法, `this.handler`为`DocumentHandler`.
+
+<div align=center><img src="./images/2.png"></div>
+
+<div align=center><img src="./images/3.png"></div>
+
+<div align=center><img src="./images/4.png"></div>
+
+跟进`com.sun.beans.decoder.DocumentHandler#parse`, 在`run`方法中会通过`SAXParserFactory`工厂创建实例, 进而调用`newSAXParser`来获取`SAX`解析器, 并调用`parse`方法来进行解析.
+
+<div align=center><img src="./images/5.png"></div>
+
+接着跟进`com.sun.org.apache.xerces.internal.parsers.XML11Configuration#parse`方法中, 调用`determineDocVersion`方法.
+
+<div align=center><img src="./images/7.png"></div>
+
+跟进`com.sun.org.apache.xerces.internal.impl.XMLVersionDetector#determineDocVersion`方法, 发现这里主要是获取`XML`实体扫描器, 然后扫描解析`<?xml version=...?>`来获取`XML`文档的版本信息.
+
+<div align=center><img src="./images/8.png"></div>
+
+获取到版本信息后, 回到`com.sun.org.apache.xerces.internal.parsers.XML11Configuration#parse`方法中, 调用`startDocumentParsing`来重置扫描器的版本配置, 并调用`startEntity`方法.
+
+<div align=center><img src="./images/9.png"></div>
+
+<div align=center><img src="./images/10.png"></div>
+
+跟进`com.sun.org.apache.xerces.internal.impl.XMLDocumentScannerImpl#startEntity`方法, 可以看到在最后会调用到`DocumentHandler#startDocument`, 来清空当前对象和句柄并准备进行文件扫描.
+
+<div align=center><img src="./images/11.png"></div>
+
+<div align=center><img src="./images/12.png"></div>
+
+接着回到`com.sun.org.apache.xerces.internal.parsers.XML11Configuration#parse`方法中, 调用`scanDocument`方法开始文件扫描.
+
+<div align=center><img src="./images/13.png"></div>
+
+跟进`com.sun.org.apache.xerces.internal.impl.XMLDocumentFragmentScannerImpl#scanDocument`方法, 设置实体句柄后, 执行`do-while`循环并利用`switch-case`语句进行判断, 其中包含对`START_DOCUMENT`、`START_ELEMENT`、`CHARACTERS`、`SPACE`、`ENTITY_REFERENCE`、`PROCESSING_INSTRUCTION`、`COMMENT`、`DTD`、`CDATA`、`NOTATION_DECLARATION`、`ENTITY_DECLARATION`、`NAMESPACE`、`ATTRIBUTE`、`END_ELEMENT`等扫描识别.
+
+<div align=center><img src="./images/14.png"></div>
+
+当判断到`END_ELEMENT`时, 一路跟进到`ElementHandler#endElement`, 跟进到`ObjectElementHandler#getValueObject`中, 先逐步把`open`、`-a`、`Calculator`取出来, 
+
+<div align=center><img src="./images/15.png"></div>
+
+<div align=center><img src="./images/16.png"></div>
+
+<div align=center><img src="./images/17.png"></div>
+
+<div align=center><img src="./images/18.png"></div>
+
+继续跟进到`ObjectElementHandler#getValueObject`中, 可以看到变量`var3`和`var4`分别为获取到`Runtime`类名和`exec`方法名.
+
+<div align=center><img src="./images/19.png"></div>
+
+再调用`Expression#getValue`, 跟进到`Statement#invoke`, 再跟进到`Statement#invokeInternal`, 最后调用`MethodUtil#invoke`来实现反射执行任意类方法.
+
+<div align=center><img src="./images/20.png"></div>
+
+<div align=center><img src="./images/21.png"></div>
+
+<div align=center><img src="./images/22.png"></div>
 
 # 参考
  - [Java XMLDecoder反序列化分析](https://y4er.com/post/java-xmldecoder/)
