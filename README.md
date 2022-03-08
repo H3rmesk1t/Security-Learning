@@ -37,6 +37,7 @@
  - [SnakeYaml](https://github.com/H3rmesk1t/Learning_summary/blob/main/WebSec/Java%E5%AE%89%E5%85%A8%E5%AD%A6%E4%B9%A0%E2%80%94SnakeYaml%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E/Java%E5%AE%89%E5%85%A8%E5%AD%A6%E4%B9%A0%E2%80%94SnakeYaml%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E.md) ✔️
  - [XStream](https://github.com/H3rmesk1t/Learning_summary/blob/main/WebSec/Java%E5%AE%89%E5%85%A8%E5%AD%A6%E4%B9%A0%E2%80%94XStream%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E/Java%E5%AE%89%E5%85%A8%E5%AD%A6%E4%B9%A0%E2%80%94XStream%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E.md) ✔️
  - [XMLDecode](https://github.com/H3rmesk1t/Learning_summary/blob/main/WebSec/Java%E5%AE%89%E5%85%A8%E5%AD%A6%E4%B9%A0%E2%80%94XMLDecode%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E/Java%E5%AE%89%E5%85%A8%E5%AD%A6%E4%B9%A0%E2%80%94XMLDecode%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E.md) ✔️
+ - [jdk7u21](www.baidu.com) ❌
  - [C3P0](www.baidu.com) ❌
  - [Groovy](www.baidu.com) ❌
  - [Hessian](www.baidu.com) ❌
@@ -75,3 +76,4 @@
  - [MD5](https://github.com/H3rmesk1t/Learning_summary/blob/main/WebSec/MD5%E9%A2%98%E7%9B%AE%E8%80%83%E7%82%B9.md) ✔️
  - [正则表达式](https://github.com/H3rmesk1t/Learning_summary/blob/main/WebSec/%E6%AD%A3%E5%88%99%E8%A1%A8%E8%BE%BE%E5%BC%8F.md) ✔️
  - [浅谈 Proc 目录](https://github.com/H3rmesk1t/Learning_summary/blob/main/WebSec/%E6%B5%85%E8%B0%88Proc%E7%9B%AE%E5%BD%95.md) ✔️
+ - [Fastjson-Gadgets-Automatic-Scanner 工具分析](https://github.com/H3rmesk1t/Learning_summary/blob/main/WebSec/Fastjson-Gadgets-Automatic-Scanner/Fastjson-Gadgets-Automatic-Scanner.md) ✔️
