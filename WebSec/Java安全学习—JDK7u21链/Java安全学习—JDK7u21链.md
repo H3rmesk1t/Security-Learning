@@ -346,3 +346,8 @@ public class Poc {
     }
 }
 ```
+
+# Fixed
+官方的修复方案: 在`sun.reflect.annotation.AnnotationInvocationHandler`类的`readObject`函数中, 原本有一个对`this.type`的检查, 在其不是`AnnotationType`的情况下会抛出一个异常. 但是捕获到异常后没有做任何事情, 只是将这个函数返回了, 这样并不影响整个反序列化的执行过程. 在新版中, 将这个返回改为了抛出一个异常, 会导致整个序列化的过程终止. 但是这个修复方式实际上仍然存在问题, 这也导致后面的另一条原生利用链`JDK8u20`.
+
+<div align=center><img src="./images/11.png"></div>
