@@ -47,6 +47,9 @@
  - [Hibernate2](www.baidu.com) ❌
  - [Shiro](www.baidu.com) ❌
  - [Struts2](www.baidu.com) ❌
+ - [表达式注入](www.baidu.com) ❌
+ - [Tomcat 内存马分析](www.baidu.com) ❌
+ - [JNDI 注入攻击自研](www.baidu.com) ❌
 
 
 ## 🌱 Python Security
