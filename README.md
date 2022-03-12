@@ -87,7 +87,7 @@ Records of the usual learning process.
  - [Flask 内存马](https://github.com/H3rmesk1t/Learning_summary/blob/main/WebSec/Python%20Flask%20%E5%86%85%E5%AD%98%E9%A9%AC.md)
 
 ## Database
- - [Redis 攻击方式](https://github.com/H3rmesk1t/Learning_summary/blob/main/WebSec/Redis%20%E6%94%BB%E5%87%BB%E6%96%B9%E5%BC%8F.md)
+ - [Redis](https://github.com/H3rmesk1t/Learning_summary/blob/main/WebSec/Redis/Redis.md)
 
 
 # Binary Security
