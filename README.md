@@ -89,6 +89,8 @@ Records of the usual learning process.
 ## Database
  - [Redis](https://github.com/H3rmesk1t/Learning_summary/blob/main/WebSec/Redis/Redis.md)
 
+ - [MySQL](https://github.com/H3rmesk1t/Learning_summary/tree/main/WebSec/Mysql)
+
 
 # Binary Security
 ## PWN
