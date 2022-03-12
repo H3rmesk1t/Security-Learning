@@ -104,10 +104,10 @@ Records of the usual learning process.
  - [VPS 搭建 CobaltStrike](https://github.com/H3rmesk1t/Learning_summary/blob/main/IntranetSec/VPS%E6%90%AD%E5%BB%BACobaltStrike.md)
 
 # Miscellaneous Talk
- - [MD5](https://github.com/H3rmesk1t/Learning_summary/blob/main/WebSec/MD5%E9%A2%98%E7%9B%AE%E8%80%83%E7%82%B9.md)
+ - [MD5](https://github.com/H3rmesk1t/Learning_summary/blob/main/WebSec/MD5/MD5%E9%A2%98%E7%9B%AE%E8%80%83%E7%82%B9.md)
 
- - [正则表达式](https://github.com/H3rmesk1t/Learning_summary/blob/main/WebSec/%E6%AD%A3%E5%88%99%E8%A1%A8%E8%BE%BE%E5%BC%8F.md)
+ - [正则表达式](https://github.com/H3rmesk1t/Learning_summary/blob/main/WebSec/%E6%AD%A3%E5%88%99%E8%A1%A8%E8%BE%BE%E5%BC%8F/%E6%AD%A3%E5%88%99%E8%A1%A8%E8%BE%BE%E5%BC%8F.md)
 
- - [浅谈 Proc 目录](https://github.com/H3rmesk1t/Learning_summary/blob/main/WebSec/%E6%B5%85%E8%B0%88Proc%E7%9B%AE%E5%BD%95.md)
+ - [浅谈 Proc 目录](https://github.com/H3rmesk1t/Learning_summary/tree/main/WebSec/%E6%B5%85%E8%B0%88Proc%E7%9B%AE%E5%BD%95)
 
  - [Linux Fork 炸弹](https://github.com/H3rmesk1t/Learning_summary/blob/main/BinarySec/Others/Linux%20Fork%20%E7%82%B8%E5%BC%B9.md)
