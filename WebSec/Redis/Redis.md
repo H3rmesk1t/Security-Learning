@@ -1,4 +1,4 @@
-# Redis 攻击方式
+# Redis
 
 Author: H3rmesk1t
 
