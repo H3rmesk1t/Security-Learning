@@ -1418,6 +1418,8 @@ select "h3rmesk1t" into dumpfile 'C:\\Tools\\phpstudy_pro\\Extensions\\MySQL5.7.
 ```
 
 ### 写入动态链接库
+[相关工具地址](https://github.com/H3rmesk1t/MySQL-UDF/tree/main).
+
  - `SQL`注入且是高权限, `plugin`目录可写且`secure_file_priv`无限制, `MySQL`插件目录可以被`MySQL`用户写入, 这个时候就可以直接使用`sqlmap`来上传动态链接库, 但是`GET`有字节长度限制, 所以往往`POST`注入才可以执行这种攻击.
 
 ```sh
