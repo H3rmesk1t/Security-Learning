@@ -1,3 +1,5 @@
+# VPS搭建CobaltStrike
+
 # 前言
 在研究`CobaltStrike`甚至是`Metasploit`都是在内网环境中，在测试某些东西时都是内网环境且没有公网地址；或者当打下一台边界主机需要在上面架设一个`CobaltStrike`时，本文记录一下在`vps`上搭建`CobaltStrike`服务端，解决打单点主机的一些问题。
 
@@ -17,28 +19,28 @@
 
 检验是否已经安装`java`，未安装的话根据提示选择需要的版本进行安装即可
 
-<img src="./VPS搭建CobaltStrike/1.png" alt="">
+<img src="./images/1.png" alt="">
 
 检验是否成功安装
 
-<img src="./VPS搭建CobaltStrike/2.png" alt="">
+<img src="./images/2.png" alt="">
 
 ## CobaltStrike安装
 这里给出一个`CobaltStrike4.3.7`的[下载链接](https://anonfiles.com/D9F854E7u0/cobaltstrike4.3_7z)，解压密码为：`H3rmesk1t`
 
 将`CobaltStrike`上传到`vps`上
 
-<img src="./VPS搭建CobaltStrike/3.png" alt="">
+<img src="./images/3.png" alt="">
 
 进入目录，给`teamserver`赋予`777`权限
 
-<img src="./VPS搭建CobaltStrike/4.png" alt="">
+<img src="./images/4.png" alt="">
 
 启动服务端：./teamserver vps的ip 连接密码
 客户端根据服务端的信息进行连接
 
-<img src="./VPS搭建CobaltStrike/5.png" alt="">
+<img src="./images/5.png" alt="">
 
-<img src="./VPS搭建CobaltStrike/6.png" alt="">
+<img src="./images/6.png" alt="">
 
 如果出现连接被拒绝情况，请开启端口`sudo ufw allow 50050`
