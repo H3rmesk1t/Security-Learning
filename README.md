@@ -92,6 +92,13 @@ Records of the usual learning process.
 
  - [XMLDecode](https://github.com/H3rmesk1t/Learning_summary/blob/main/WebSec/Java%E5%AE%89%E5%85%A8%E5%AD%A6%E4%B9%A0%E2%80%94XMLDecode%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E/Java%E5%AE%89%E5%85%A8%E5%AD%A6%E4%B9%A0%E2%80%94XMLDecode%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E.md)
 
+### 表达式注入
+ - [EL](https://github.com/H3rmesk1t/Learning_summary/blob/main/WebSec/Java%E5%AE%89%E5%85%A8%E5%AD%A6%E4%B9%A0%E2%80%94EL%E8%A1%A8%E8%BE%BE%E5%BC%8F%E6%B3%A8%E5%85%A5/Java%E5%AE%89%E5%85%A8%E5%AD%A6%E4%B9%A0%E2%80%94EL%E8%A1%A8%E8%BE%BE%E5%BC%8F%E6%B3%A8%E5%85%A5.md)
+
+ - [SpEL](https://github.com/H3rmesk1t/Learning_summary/blob/main/WebSec/Java%E5%AE%89%E5%85%A8%E5%AD%A6%E4%B9%A0%E2%80%94SpEL%E8%A1%A8%E8%BE%BE%E5%BC%8F%E6%B3%A8%E5%85%A5/Java%E5%AE%89%E5%85%A8%E5%AD%A6%E4%B9%A0%E2%80%94SpEL%E8%A1%A8%E8%BE%BE%E5%BC%8F%E6%B3%A8%E5%85%A5.md)
+
+ - [OGNL](https://github.com/H3rmesk1t/Learning_summary/blob/main/WebSec/Java%E5%AE%89%E5%85%A8%E5%AD%A6%E4%B9%A0%E2%80%94OGNL%E8%A1%A8%E8%BE%BE%E5%BC%8F%E6%B3%A8%E5%85%A5/Java%E5%AE%89%E5%85%A8%E5%AD%A6%E4%B9%A0%E2%80%94OGNL%E8%A1%A8%E8%BE%BE%E5%BC%8F%E6%B3%A8%E5%85%A5.md)
+
 
 ## Python
  - [Flask 内存马](https://github.com/H3rmesk1t/Learning_summary/blob/main/WebSec/Python%20Flask%20%E5%86%85%E5%AD%98%E9%A9%AC.md)
