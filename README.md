@@ -4,7 +4,7 @@ Records of the usual learning process.
 
 # Web Security
 ## PHP
-  -  基础知识
+  - 🍎 基础知识
 
 |基础知识|内容链接|
 |:----|:----|
@@ -21,7 +21,7 @@ Records of the usual learning process.
 |XML外部实体注入|[内容链接](https://github.com/H3rmesk1t/Learning_summary/blob/main/WebSec/PHP/PHP%E5%AE%89%E5%85%A8%E5%AD%A6%E4%B9%A0%E2%80%94XML%E5%A4%96%E9%83%A8%E5%AE%9E%E4%BD%93%E6%B3%A8%E5%85%A5%E6%BC%8F%E6%B4%9E/PHP%E5%AE%89%E5%85%A8%E5%AD%A6%E4%B9%A0%E2%80%94XML%E5%A4%96%E9%83%A8%E5%AE%9E%E4%BD%93%E6%B3%A8%E5%85%A5%E6%BC%8F%E6%B4%9E.md)|
 |Twig 模板引擎 SSTI 注入|[内容链接](https://github.com/H3rmesk1t/Learning_summary/blob/main/WebSec/PHP/PHP%E5%AE%89%E5%85%A8%E5%AD%A6%E4%B9%A0%E2%80%94Twig%E6%A8%A1%E6%9D%BF%E5%BC%95%E6%93%8ESSTI%E6%B3%A8%E5%85%A5/PHP%E5%AE%89%E5%85%A8%E5%AD%A6%E4%B9%A0%E2%80%94Twig%E6%A8%A1%E6%9D%BF%E5%BC%95%E6%93%8ESSTI%E6%B3%A8%E5%85%A5.md)|
 
-  -  代码审计
+  - 🍎 代码审计
 
 |代码审计|内容链接|
 |:----|:----|
@@ -47,7 +47,7 @@ Records of the usual learning process.
 
 
 ## Java
-  -  基础知识
+  - 🍎 基础知识
 
 |基础知识|内容链接|
 |:----|:----|
@@ -60,7 +60,7 @@ Records of the usual learning process.
 |Javassist|[内容链接](https://github.com/H3rmesk1t/Learning_summary/blob/main/WebSec/JAVA/Java%E5%AE%89%E5%85%A8%E5%AD%A6%E4%B9%A0%E2%80%94Javassist/Java%E5%AE%89%E5%85%A8%E5%AD%A6%E4%B9%A0%E2%80%94Javassist.md)|
 |TemplatesImpl|[内容链接](https://github.com/H3rmesk1t/Learning_summary/blob/main/WebSec/JAVA/Java%E5%AE%89%E5%85%A8%E5%AD%A6%E4%B9%A0%E2%80%94TemplatesImpl.md/Java%E5%AE%89%E5%85%A8%E5%AD%A6%E4%B9%A0%E2%80%94TemplatesImpl.md)|
 
-  -  Ysoserial
+  - 🍎 Ysoserial
 
 |Ysoserial|内容链接|
 |:----|:----|
@@ -84,7 +84,7 @@ Records of the usual learning process.
 |Commons-Collections6|[内容链接](https://github.com/H3rmesk1t/Learning_summary/blob/main/WebSec/JAVA/Java%E5%AE%89%E5%85%A8%E5%AD%A6%E4%B9%A0%E2%80%94Commons-Collections6%E9%93%BE/Java%E5%AE%89%E5%85%A8%E5%AD%A6%E4%B9%A0%E2%80%94Commons-Collections6%E9%93%BE.md)|
 |Commons-Collections7|[内容链接](https://github.com/H3rmesk1t/Learning_summary/blob/main/WebSec/JAVA/Java%E5%AE%89%E5%85%A8%E5%AD%A6%E4%B9%A0%E2%80%94Commons-Collections7%E9%93%BE/Java%E5%AE%89%E5%85%A8%E5%AD%A6%E4%B9%A0%E2%80%94Commons-Collections7%E9%93%BE.md)|
 
-  -  表达式注入
+  - 🍎 表达式注入
 
 |表达式注入|内容链接|
 |:----|:----|
@@ -92,7 +92,7 @@ Records of the usual learning process.
 |OGNL表达式注入|[内容链接](https://github.com/H3rmesk1t/Learning_summary/blob/main/WebSec/JAVA/Java%E5%AE%89%E5%85%A8%E5%AD%A6%E4%B9%A0%E2%80%94OGNL%E8%A1%A8%E8%BE%BE%E5%BC%8F%E6%B3%A8%E5%85%A5/Java%E5%AE%89%E5%85%A8%E5%AD%A6%E4%B9%A0%E2%80%94OGNL%E8%A1%A8%E8%BE%BE%E5%BC%8F%E6%B3%A8%E5%85%A5.md)|
 |SpEL表达式|[内容链接](https://github.com/H3rmesk1t/Learning_summary/blob/main/WebSec/JAVA/Java%E5%AE%89%E5%85%A8%E5%AD%A6%E4%B9%A0%E2%80%94SpEL%E8%A1%A8%E8%BE%BE%E5%BC%8F%E6%B3%A8%E5%85%A5/Java%E5%AE%89%E5%85%A8%E5%AD%A6%E4%B9%A0%E2%80%94SpEL%E8%A1%A8%E8%BE%BE%E5%BC%8F%E6%B3%A8%E5%85%A5.md)|
 
-  -  漏洞分析
+  - 🍎 漏洞分析
 
 |漏洞分析|内容链接|
 |:----|:----|
@@ -104,7 +104,7 @@ Records of the usual learning process.
 |XMLDecode反序列化漏洞|[内容链接](https://github.com/H3rmesk1t/Learning_summary/blob/main/WebSec/JAVA/Java%E5%AE%89%E5%85%A8%E5%AD%A6%E4%B9%A0%E2%80%94XMLDecode%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E/Java%E5%AE%89%E5%85%A8%E5%AD%A6%E4%B9%A0%E2%80%94XMLDecode%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E.md)|
 |MySQL-JDBC反序列化漏洞|[内容链接](https://github.com/H3rmesk1t/Learning_summary/blob/main/WebSec/JAVA/Java%E5%AE%89%E5%85%A8%E5%AD%A6%E4%B9%A0%E2%80%94MySQL%20JDBC%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E/images/Java%E5%AE%89%E5%85%A8%E5%AD%A6%E4%B9%A0%E2%80%94MySQL%20JDBC%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E.md)|
 
-  -  工具开发
+  - 🍎 工具开发
 
 |工具开发|内容链接|
 |:----|:----|
@@ -113,7 +113,7 @@ Records of the usual learning process.
 
 
 ## Python
-  -  基础知识
+  - 🍎 基础知识
 
 |基础知识|内容链接|
 |:----|:----|
@@ -122,7 +122,7 @@ Records of the usual learning process.
 
 
 ## Database
-  -  数据库注入漏洞
+  - 🍎 数据库注入漏洞
 
 |数据库注入漏洞|内容链接|
 |:----|:----|
@@ -133,7 +133,7 @@ Records of the usual learning process.
 
 # Binary Security
 ## PWN
-  -  基础知识
+  - 🍎 基础知识
 
 |基础知识|内容链接|
 |:----|:----|
