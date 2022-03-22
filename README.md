@@ -45,6 +45,12 @@ Records of the usual learning process.
 |ThinkPHP6.x 代码审计|[内容链接](https://github.com/H3rmesk1t/Learning_summary/blob/main/WebSec/PHP/ThinkPHP6.x%20%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/ThinkPHP6.x%20%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1.md)|
 |Yii2.0.42 反序列化|[内容链接](https://github.com/H3rmesk1t/Learning_summary/blob/main/WebSec/PHP/Yii2.0.42%20%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/Yii2.0.42%20%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1.md)|
 
+  - 🍎 基础知识
+
+|赛题复现|内容链接|
+|:----|:----|
+|2022红明谷杯|[内容链接](https://github.com/H3rmesk1t/Learning_summary/blob/main/WebSec/PHP/PHP%E8%B5%9B%E9%A2%98%E5%AD%A6%E4%B9%A0%E2%80%942022%E7%BA%A2%E6%98%8E%E8%B0%B7%E6%9D%AF/PHP%E8%B5%9B%E9%A2%98%E5%AD%A6%E4%B9%A0%E2%80%942022%E7%BA%A2%E6%98%8E%E8%B0%B7%E6%9D%AF.md)|
+
 
 ## Java
   - 🍎 基础知识
