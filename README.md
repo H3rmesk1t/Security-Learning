@@ -45,7 +45,7 @@ Records of the usual learning process.
 |ThinkPHP6.x 代码审计|[内容链接](https://github.com/H3rmesk1t/Learning_summary/blob/main/WebSec/PHP/ThinkPHP6.x%20%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/ThinkPHP6.x%20%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1.md)|
 |Yii2.0.42 反序列化|[内容链接](https://github.com/H3rmesk1t/Learning_summary/blob/main/WebSec/PHP/Yii2.0.42%20%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/Yii2.0.42%20%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1.md)|
 
-  - 🍎 基础知识
+  - 🍎 赛题复现
 
 |赛题复现|内容链接|
 |:----|:----|
@@ -125,6 +125,7 @@ Records of the usual learning process.
 |:----|:----|
 |Flask内存马|[内容链接](https://github.com/H3rmesk1t/Learning_summary/blob/main/WebSec/PYTHON/Python%E5%AE%89%E5%85%A8%E5%AD%A6%E4%B9%A0%E2%80%94Flask%E5%86%85%E5%AD%98%E9%A9%AC/Python%E5%AE%89%E5%85%A8%E5%AD%A6%E4%B9%A0%E2%80%94Flask%E5%86%85%E5%AD%98%E9%A9%AC.md)|
 |SSTI模板注入|[内容链接](https://github.com/H3rmesk1t/Learning_summary/blob/main/WebSec/PYTHON/Python%E5%AE%89%E5%85%A8%E5%AD%A6%E4%B9%A0%E2%80%94SSTI%E6%A8%A1%E6%9D%BF%E6%B3%A8%E5%85%A5/Python%E5%AE%89%E5%85%A8%E5%AD%A6%E4%B9%A0%E2%80%94SSTI%E6%A8%A1%E6%9D%BF%E6%B3%A8%E5%85%A5.md)|
+|Python反序列化漏洞|[内容链接](https://github.com/H3rmesk1t/Learning_summary/blob/main/WebSec/PYTHON/Python%E5%AE%89%E5%85%A8%E5%AD%A6%E4%B9%A0%E2%80%94Python%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E/Python%E5%AE%89%E5%85%A8%E5%AD%A6%E4%B9%A0%E2%80%94Python%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E.md)|
 
 
 ## Database
