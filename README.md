@@ -128,6 +128,19 @@ Records of the usual learning process.
 |Python反序列化漏洞|[内容链接](https://github.com/H3rmesk1t/Learning_summary/blob/main/WebSec/PYTHON/Python%E5%AE%89%E5%85%A8%E5%AD%A6%E4%B9%A0%E2%80%94Python%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E/Python%E5%AE%89%E5%85%A8%E5%AD%A6%E4%B9%A0%E2%80%94Python%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E.md)|
 
 
+## JavaScript
+  - 🍎 基础知识
+
+|基础知识|内容链接|
+|:----|:----|
+|浅谈JavaScript原型链污染|[内容链接](https://github.com/H3rmesk1t/Learning_summary/blob/main/WebSec/JAVASCRIPT/%E6%B5%85%E8%B0%88JavaScript%E5%8E%9F%E5%9E%8B%E9%93%BE%E6%B1%A1%E6%9F%93/%E6%B5%85%E8%B0%88JavaScript%E5%8E%9F%E5%9E%8B%E9%93%BE%E6%B1%A1%E6%9F%93.md)|
+
+  - 🍎 漏洞分析
+
+|漏洞分析|内容链接|
+|:----|:----|
+|CVE-2019-11358漏洞分析|[内容链接](https://github.com/H3rmesk1t/Learning_summary/blob/main/WebSec/JAVASCRIPT/CVE-2019-11358%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/CVE-2019-11358%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90.md)|
+
 ## Database
   - 🍎 数据库注入漏洞
 
