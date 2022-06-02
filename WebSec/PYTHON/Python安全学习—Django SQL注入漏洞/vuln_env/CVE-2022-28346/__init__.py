@@ -1,6 +1,0 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-"""
-@Author: H3rmesk1t
-@Email: lyj952359549@gmail.com
-"""
