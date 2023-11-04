@@ -1,0 +1,61 @@
+<mxfile host="65bd71144e">
+    <diagram id="1tbYw1mz4XmODZjzDqJr" name="第 1 页">
+        <mxGraphModel dx="917" dy="766" grid="0" gridSize="10" guides="0" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="2" value="&lt;font face=&quot;Times New Roman&quot;&gt;book1结构体指针&lt;br&gt;0x555555603730&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="160" y="220" width="120" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="3" value="原执行流程" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+                    <mxGeometry x="160" y="160" width="120" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="5" value="book1结构体" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Times New Roman;" vertex="1" parent="1">
+                    <mxGeometry x="160" y="360" width="120" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="6" value="\x00覆盖后执行流程" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+                    <mxGeometry x="560" y="160" width="120" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="7" value="&lt;font face=&quot;Times New Roman&quot;&gt;book1结构体指针&lt;br&gt;0x555555603700&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="560" y="220" width="120" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="8" value="" style="shape=curlyBracket;whiteSpace=wrap;html=1;rounded=1;labelPosition=left;verticalLabelPosition=middle;align=right;verticalAlign=middle;fontFamily=Times New Roman;" vertex="1" parent="1">
+                    <mxGeometry x="290" y="300" width="20" height="160" as="geometry"/>
+                </mxCell>
+                <mxCell id="9" value="book1_id&lt;br&gt;1" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Times New Roman;" vertex="1" parent="1">
+                    <mxGeometry x="320" y="300" width="120" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="10" value="book1_name&lt;br&gt;0x00005555556036b0" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Times New Roman;" vertex="1" parent="1">
+                    <mxGeometry x="320" y="360" width="120" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="11" value="book1_description&lt;br&gt;0x555555603700" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Times New Roman;" vertex="1" parent="1">
+                    <mxGeometry x="320" y="420" width="120" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="12" value="" style="shape=curlyBracket;whiteSpace=wrap;html=1;rounded=1;labelPosition=left;verticalLabelPosition=middle;align=right;verticalAlign=middle;fontFamily=Times New Roman;" vertex="1" parent="1">
+                    <mxGeometry x="450" y="360" width="20" height="160" as="geometry"/>
+                </mxCell>
+                <mxCell id="13" value="fake_book1_id" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Times New Roman;dashed=1;" vertex="1" parent="1">
+                    <mxGeometry x="480" y="360" width="120" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="14" value="fake_book1_name" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Times New Roman;dashed=1;" vertex="1" parent="1">
+                    <mxGeometry x="480" y="420" width="120" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="15" value="fake_book1_description" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Times New Roman;dashed=1;" vertex="1" parent="1">
+                    <mxGeometry x="480" y="480" width="120" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="17" value="" style="edgeStyle=elbowEdgeStyle;elbow=vertical;endArrow=classic;html=1;curved=0;rounded=0;endSize=8;startSize=8;fontFamily=Times New Roman;entryX=0.5;entryY=1;entryDx=0;entryDy=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="1" source="7" target="11">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="620" y="270" as="sourcePoint"/>
+                        <mxPoint x="370" y="560" as="targetPoint"/>
+                        <Array as="points">
+                            <mxPoint x="540" y="540"/>
+                            <mxPoint x="690" y="540"/>
+                            <mxPoint x="550" y="540"/>
+                            <mxPoint x="560" y="540"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>
